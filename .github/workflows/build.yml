@@ -1,0 +1,51 @@
+name: Build and test
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build (installs dependencies, runs all tests, builds the exe)
+        shell: pwsh
+        run: ./build.ps1
+      - name: Browser test of the Outlook task pane
+        shell: pwsh
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install chromium
+          node tests/test_taskpane_browser.js
+      - name: PowerShell script syntax check
+        shell: pwsh
+        run: |
+          foreach ($f in Get-ChildItem office-addin/*.ps1) {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$errors) | Out-Null
+            if ($errors) { $errors | ForEach-Object { Write-Error "$($f.Name): $_" }; exit 1 }
+            Write-Host "OK $($f.Name)"
+          }
+      - name: Package
+        shell: pwsh
+        run: python tools/package_release.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DBN-Email-Studio-${{ github.sha }}
+          path: |
+            DBN Email Studio.zip
+            dist/SHA256.txt
+          retention-days: 30
