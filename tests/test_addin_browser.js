@@ -134,6 +134,20 @@ const message=obj=>({id:'msg_1',type:'message',role:'assistant',model:'claude-op
     await page.waitForFunction(()=>(window.__bag.profiles||[]).some(p=>p.name==='Fictional strata voice'));
 
     assert.deepEqual(errors,[],'no console errors');
-    console.log('Hosted add-in (browser): no-engine load, key test & mailbox storage, SDK request shape (structured output, effort, fallbacks, browser header), reply HTML, refine, variants, new email, Haiku and profiles passed.');
+
+    // 10. Outlook never signals ready: buttons still work and the watchdog explains why
+    const stuck=await browser.newPage({viewport:{width:420,height:900}});
+    await stuck.route('https://appsforoffice.microsoft.com/**',r=>r.fulfill({contentType:'text/javascript',
+      body:"window.Office={HostType:{Outlook:'Outlook'},onReady(){return new Promise(()=>{});}};"}));
+    await stuck.goto(`http://127.0.0.1:${port}/taskpane.html`);
+    await stuck.waitForFunction(()=>document.querySelectorAll('#intents button').length===10);
+    assert.ok((await stuck.$$eval('#tone option',o=>o.length))>5,'tone list filled before Outlook is ready');
+    await stuck.click('#open-settings');assert.equal(await stuck.isVisible('#drawer'),true);
+    assert.match(await stuck.textContent('#settings-status'),/Still connecting/);
+    await stuck.click('#close-settings');
+    await stuck.waitForFunction(()=>/could not finish starting/.test(document.getElementById('status').textContent),null,{timeout:20000});
+    assert.match(await stuck.textContent('#status'),/Office\.onReady/);
+    await stuck.close();
+    console.log('Hosted add-in (browser): no-engine load, start-up watchdog, key test & mailbox storage, SDK request shape (structured output, effort, fallbacks, browser header), reply HTML, refine, variants, new email, Haiku and profiles passed.');
   }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
