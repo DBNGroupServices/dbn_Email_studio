@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.0 — 25 November 2026 — no desktop app
+
+- **The add-in no longer needs DBN Email Studio running.** It is a static site on GitHub Pages (`addin/`), so Outlook loads the pane directly. The "Sorry, we can't load the add-in" failure caused by the local engine no longer applies.
+- **Claude drafts the replies.** The pane calls Claude directly with your own Anthropic API key, using the official Anthropic SDK (pinned and bundled in `addin/vendor/` with no CDN). Claude Opus 5.5 is the default, with Sonnet 5.5 and Haiku 5.5 selectable. Requests use structured JSON output and medium effort; on Opus and Sonnet, a declined request is retried on a fallback model in the same call.
+- **Settings live in your mailbox.** The API key, model, your details, voice profiles and templates are saved in Outlook roaming settings, so they follow you to any PC. A meter shows the 32 KB storage use.
+- **"Write new" opens a real new Outlook email** with no engine needed.
+- Files the pane can read: images, PDF, TXT, CSV, EML and HTML. DOCX and MSG files show a "save as PDF" hint.
+- Every v2 pane feature is kept: quick replies, voice profiles, sliders, variants, refine and history, reply all, send checks and the security guard.
+- New: `addin-build/` (SDK bundle and manifest generator), `.github/workflows/pages.yml` (tests, then deploy), `tests/test_addin.js` and `tests/test_addin_browser.js`.
+
 ## 2.0.0 — 24 November 2026
 
 ### Fixed: "Sorry, we can't load the add-in"

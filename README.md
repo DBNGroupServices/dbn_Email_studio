@@ -1,22 +1,19 @@
 # DBN Email Studio
 
-**Version 2.0** — an Outlook Classic add-in and Windows app that reads the email you have open and drafts a reply in your voice and tone. It uses your own ChatGPT plan. Nothing is sent automatically.
+**Version 3.0.** DBN Email Studio is an Outlook Classic add-in that reads the email you have open and drafts a reply in your voice and tone with **Claude**. **No desktop app is needed**: the add-in is hosted on GitHub Pages and works whenever Outlook is open. Nothing is ever sent automatically.
 
-- **Outlook pane** (ribbon → *Email Studio*): one-click quick replies, voice profiles, compare 2–3 drafts, refine chips with version history, Reply / Reply all with proper formatting, before-you-send checks and a security disclosure guard. See [Outlook add-in install & troubleshooting](office-addin/README.md).
-- **Desktop app**: paste or drop emails, screenshots, PDFs, MSG/EML files and dot points; import from Outlook Classic.
-- **What changed in 2.0, and the fix for "Sorry, we can't load the add-in"**: [CHANGELOG.md](CHANGELOG.md).
+- **Set up and use:** [addin/README.md](addin/README.md)
+- **What changed:** [CHANGELOG.md](CHANGELOG.md)
 
-### Quick start (Outlook)
-1. Double-click `Outlook add-in\Install Email Studio.cmd` in the release. Choose **Yes** on the Windows certificate prompt.
-2. In Outlook: **Get Add-ins → My add-ins → Custom add-ins → Add from file** → `%LOCALAPPDATA%\Programs\DBN Email Studio\manifest.xml`. You only need to do this on first install or when upgrading from 1.x.
-3. Open an email → **Email Studio** → gear → **Continue with ChatGPT** (first time only).
+Features include one-click quick replies, voice profiles that learn from your example emails, tone sliders, side-by-side comparison of 2–3 drafts, refine chips with version history, Reply / Reply all and new email with proper formatting, before-you-send checks and a security disclosure guard.
 
-If the pane ever fails to load, run `Fix Email Studio.cmd`.
+> The Windows desktop engine (`app.py`, `web/`, `office-addin/`) from versions 1.x–2.0 is still in the repository but is **no longer needed** for the add-in. It is kept only in case you want the standalone app later.
 
 ### Developing
 - Python tests: `python -m unittest discover -s tests` (on Linux set `DBN_EMAIL_TEST_PLAINTEXT_STORE=1`).
 - JS tests: `node tests/test_draft_tools.js`, `node tests/test_office_client.js`, `node tests/test_session_api.js`.
-- Browser test of the pane: `node tests/test_taskpane_browser.js` (needs Playwright).
+- Hosted add-in: `node tests/test_addin.js` and `node tests/test_addin_browser.js` (needs Playwright).
+- v2 engine pane: `node tests/test_taskpane_browser.js` (needs Playwright).
 - Windows build: `./build.ps1`, then `python tools/package_release.py`. GitHub Actions does both on every push; download the zip from the run's *Artifacts*.
 
 ---

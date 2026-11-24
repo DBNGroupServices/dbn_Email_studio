@@ -1,3 +1,5 @@
+> **Superseded by version 3.0.** The add-in no longer needs this local engine. See [addin/README.md](../addin/README.md). This folder is kept only for the optional desktop app.
+
 # DBN Email Studio for Outlook Classic — install & run (v2.0)
 
 The Outlook add-in is a pane that opens from the **Email Studio** button on the Home ribbon. Its pages are served by the DBN Email Studio engine running on your own computer at `https://localhost:8788`. **If the engine isn't running, Outlook can only say "Sorry, we can't load the add-in"** — that was the cause of the 1.x failures. Version 2 fixes this by starting the engine when you sign in to Windows and renewing its certificate automatically.

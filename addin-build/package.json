@@ -1,0 +1,14 @@
+{
+  "name": "dbn-email-studio-addin-build",
+  "private": true,
+  "description": "Bundles the official Anthropic TypeScript SDK into addin/vendor/anthropic-sdk.js for the Outlook add-in (no CDN at runtime).",
+  "scripts": {
+    "build": "esbuild entry.js --bundle --platform=browser --format=iife --global-name=AnthropicSDK --target=es2020 --minify --legal-comments=eof --outfile=../addin/vendor/anthropic-sdk.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.8.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10"
+  }
+}

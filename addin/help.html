@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Email Studio Help</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self'">
+<link rel="stylesheet" href="taskpane.css">
+</head>
+<body>
+<main class="app">
+  <h1>DBN Email Studio — quick help</h1>
+
+  <section class="card">
+    <h3>Reply in three clicks</h3>
+    <ol class="small">
+      <li>Open an email and click <strong>Email Studio</strong> on the Home ribbon. Pin the pane (pin icon at the top of the pane) to keep it open as you move between emails.</li>
+      <li>Click a quick reply (Acknowledge, Confirm, Ask for info…) or type a few dot points and press <strong>Ctrl+Enter</strong>.</li>
+      <li>Check the draft and the <em>before you send</em> notes, then choose <strong>Open reply</strong> or <strong>Reply all</strong>. Nothing is ever sent automatically.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h3>Make it sound like you</h3>
+    <p class="small">Settings → <strong>Voice profiles</strong>. Create one per audience (tenants, contractors, executives, team). Set formality, warmth and directness, your greeting and sign-off, things to avoid, and paste up to three emails you've written — Claude copies their rhythm and wording. Choose a <strong>Default voice</strong> so every reply starts there.</p>
+    <p class="small">Tip: open one of your own sent emails, then use <strong>+ Use the open email as an example</strong>.</p>
+  </section>
+
+  <section class="card">
+    <h3>Refine without retyping</h3>
+    <p class="small">Use Shorter, Warmer, Firmer, More formal, Simpler, Bullets or Polish — or type your own change. Use ‹ › to step back to an earlier version. Choose <em>More controls → Options to compare</em> to get two or three different drafts at once.</p>
+  </section>
+
+  <section class="card">
+    <h3>Safety checks</h3>
+    <p class="small">Before you open a reply, the pane flags unfilled placeholders such as <em>[confirm date]</em>, mentioned-but-missing attachments, commitments (refunds, guarantees, liability) and deadlines. With the <strong>Security disclosure guard</strong> on (default), it also blocks access/alarm codes, PINs, passwords, card numbers and security-coverage detail from drafts. Red items need a second click to proceed.</p>
+  </section>
+
+  <section class="card">
+    <h3>Connecting Claude</h3>
+    <ol class="small">
+      <li>Sign in at <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer">console.anthropic.com</a>, add credit under <strong>Billing</strong>, then create a key under <strong>API keys</strong>.</li>
+      <li>In the pane, open <strong>Settings (gear) → AI connection</strong>, paste the key, choose a model and press <strong>Save &amp; test</strong>.</li>
+    </ol>
+    <p class="small">Claude Opus 5.5 writes best; Sonnet 5.5 is faster and about half the cost; Haiku 5.5 is the cheapest. A typical reply costs a few cents or less.</p>
+  </section>
+
+  <section class="card">
+    <h3>If something goes wrong</h3>
+    <ul class="small">
+      <li><strong>"Sorry, we can't load the add-in"</strong> — the pane is a web page at this site. Check you're online and that the site opens in Edge; if your network blocks it, ask IT to allow <code>dbngroupservices.github.io</code>.</li>
+      <li><strong>"Could not reach api.anthropic.com"</strong> — your network may block it. Ask IT to allow <code>api.anthropic.com</code> (HTTPS).</li>
+      <li><strong>"No API credit"</strong> — add credit at console.anthropic.com → Billing.</li>
+      <li><strong>Pane looks out of date</strong> — close Outlook, delete <code>%LOCALAPPDATA%\Microsoft\Office\16.0\Wef</code>, reopen Outlook.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h3>Privacy</h3>
+    <p class="small">There is no desktop app and no DBN server. The pane reads only the email you have open. When you press Generate, the email text, your notes and any files you add go directly from Outlook to Anthropic's API using your key. Your key, settings, voice profiles and templates are saved in your Outlook mailbox's add-in settings, and only this add-in can read them. Under Anthropic's commercial terms, API inputs are not used to train models.</p>
+  </section>
+</main>
+</body>
+</html>
