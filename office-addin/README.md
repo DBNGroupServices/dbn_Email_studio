@@ -1,26 +1,59 @@
-# DBN Email Studio for Outlook Classic — personal preview
+> **Superseded by version 3.0.** The add-in no longer needs this local engine. See [addin/README.md](../addin/README.md). This folder is kept only for the optional desktop app.
 
-This is a Microsoft 365 Outlook web add-in, supplied as an XML add-in manifest. It is for this computer initially. It adds a ribbon button in message read/compose mode and opens a task pane. It is not yet an app published in Microsoft Marketplace.
+# DBN Email Studio for Outlook Classic — install & run (v2.0)
 
-Implemented: read the current email/selected compose text; reply, rewrite and compose; summaries and action extraction; proofreading and translation; follow-up drafting; structuring supplied meeting notes; manual files and supported current-email attachments; saved templates; copy, insert at cursor or open an editable reply. Nothing is sent automatically. The existing local ChatGPT connection is reused.
+The Outlook add-in is a pane that opens from the **Email Studio** button on the Home ribbon. Its pages are served by the DBN Email Studio engine running on your own computer at `https://localhost:8788`. **If the engine isn't running, Outlook can only say "Sorry, we can't load the add-in"** — that was the cause of the 1.x failures. Version 2 fixes this by starting the engine when you sign in to Windows and renewing its certificate automatically.
 
-## Installation
+## Install or upgrade (about 3 minutes, no admin rights)
 
-1. Keep DBN Email Studio running. Run `Prepare-Outlook-Addin.ps1` to prepare its loopback HTTPS endpoint. This generates a certificate and encrypts its private key with your Windows account. It does **not** install certificate trust by default.
-2. Review the displayed certificate fingerprint. After approving trust for this app's localhost certificate, run `Prepare-Outlook-Addin.ps1 -TrustLocalCertificate`. This adds only that certificate to **Current User → Trusted Root Certification Authorities**. It does not change machine-wide trust or disable certificate checks.
-3. Install `manifest.xml` through Outlook's custom add-in manager: open [Microsoft's sideloading dialog](https://aka.ms/olksideload), choose **My add-ins → Add a custom add-in → Add from file**, select the XML and review the permissions. The requested permission is **ReadWriteItem** for the current mail item. Your Microsoft 365 organisation must allow custom add-ins. If installation is blocked, provide the manifest to IT; do not change organisation policy to work around it.
-4. Open an email or compose window in Outlook Classic and choose **DBN Email Studio → Email Studio**. Sign-in remains in your local desktop engine. The panel needs the engine running after a Windows restart; no hidden startup task is installed.
+1. Unzip the release (or download the `DBN-Email-Studio-…` artifact from the GitHub Actions run) so you have:
+   ```
+   DBN Email Studio\
+     DBN Email Studio.exe
+     Outlook add-in\Install Email Studio.cmd   <- double-click this
+   ```
+2. Double-click **Install Email Studio.cmd**. It:
+   - copies the app to `%LOCALAPPDATA%\Programs\DBN Email Studio` and adds a Start menu shortcut
+   - turns on **start at Windows sign-in** (background, no window)
+   - starts the engine and creates a local certificate authority (localhost-only, name-constrained)
+   - asks Windows to trust that certificate for **your user only** — a Windows security prompt appears; check the thumbprint matches what the script printed and choose **Yes**
+   - confirms the pane page loads over trusted HTTPS
+   - opens Outlook's custom add-in page
+3. **First install, or upgrading from 1.x:** in Outlook choose **Get Add-ins → My add-ins → Custom add-ins → Add a custom add-in → Add from file**, and select `manifest.xml` in `%LOCALAPPDATA%\Programs\DBN Email Studio`. (Upgrading replaces the 1.x add-in; v2 adds pinning.) Restart Outlook.
+4. Open any email → **Email Studio**. The first time, open **Settings (gear) → AI connection → Continue with ChatGPT** if the pill says *Not connected*.
 
-The initial preview uses `https://localhost:8788` and the official Microsoft Office.js CDN. Only loopback traffic is accepted. Outlook and Microsoft 365 hosting requirements need HTTPS; do not bypass a browser or Office certificate warning.
+If your organisation blocks custom add-ins, give `manifest.xml` to IT for central deployment; don't work around the policy.
 
-### Troubleshooting the preview
+## If the pane says "can't load the add-in"
 
-Keep the updated desktop engine running in the same normal Windows account as Outlook Classic. If the panel says it could not be started, close only the DBN Email Studio task pane and reopen its ribbon button after the engine update. Version 1.5.1 accepts the host parameters Outlook adds to its page URL. No manifest reinstallation is needed for that fix. Do not run the engine as a different Windows user or disable certificate checks. If a browser still reports an untrusted certificate, stop and check the certificate rather than bypassing the warning.
+Double-click **Fix Email Studio.cmd** (in the install folder or the release's *Outlook add-in* folder). It checks — and with repair, fixes — each cause in turn:
 
-Version 1.5.2 offers **Create draft in Outlook Classic** when there is no linked Outlook item, including browser use and typed notes. This opens a new email with the result's subject/body and no recipients; it does not claim to reply to an existing thread. When opened from Outlook's ribbon, **Open reply in Outlook** replies to the linked message and **Insert at cursor** inserts into a compose window. A body-reading error no longer removes the independently available draft target. If your Outlook selection changes, the app preserves the result and refuses to insert it into the wrong email. Copy an existing result before reopening an older panel to load an update.
+| Check | Typical fix |
+|---|---|
+| Engine running on 8767 | Starts it |
+| Add-in HTTPS port 8788 listening | Re-run the installer |
+| Local certificate authority trusted / in date | Re-run the installer, choose Yes |
+| Pane page loads with Windows trust | — |
+| Start at sign-in | Turns it on |
+| Outlook add-in cache | Clears `%LOCALAPPDATA%\Microsoft\Office\16.0\Wef` (Outlook must be closed) |
 
-## What is not included yet
+Then click **Retry** in Outlook (or close and reopen the pane).
 
-Whole-mailbox AI search/indexing, automatic categorisation and filing, rules, scheduled send, snooze/reminders, unattended reply drafting, calendar booking, meeting attendance/recording/transcription, CRM/Slack/Teams integrations, shared inbox collaboration, tracking pixels and organisation administration remain planned. They require separate implementation, permissions and testing. See `FEATURE-ROADMAP.md` for the reviewed scope across all seven reference products. Reading supplied meeting notes is not a meeting recorder.
+## Scripts
 
-For a team or hosted deployment, replace localhost hosting with an approved HTTPS deployment, review Microsoft/Graph permissions and review ChatGPT plan eligibility for that deployment. A working personal sign-in does not establish organisation-wide eligibility.
+| File | Purpose |
+|---|---|
+| `Install Email Studio.cmd` / `Install-EmailStudio.ps1` | Install, upgrade, trust, verify. Options: `-NoAutoStart`, `-NoTrust`, `-ClearOfficeCache`, `-ExePath`. |
+| `Fix Email Studio.cmd` / `Diagnose-EmailStudio.ps1` | Diagnose (`.ps1` alone) or diagnose and repair (`-Repair`). |
+| `Prepare-Outlook-Addin.ps1` | 1.x name, now calls the installer. |
+| `manifest.xml` | Outlook add-in manifest (same add-in ID as 1.x, version 2.0.0.0). |
+
+## Permissions and data
+
+- **ReadWriteItem** — the add-in reads only the email you have open and can open a reply / insert into your draft. It cannot read the rest of your mailbox and never sends mail.
+- Email content goes to OpenAI only when you press Generate. Everything saved locally (sign-in, settings, voice profiles, templates, history, certificate keys) is encrypted with Windows DPAPI for your account.
+- The certificate authority can only vouch for `localhost` / `127.0.0.1`, so trusting it cannot be used to impersonate other sites. To remove it: `certmgr.msc` → Trusted Root Certification Authorities → *DBN Email Studio Local CA*.
+
+## Scaling to a team later
+
+The current design is one engine per PC (each person signs in with their own ChatGPT plan). For a team rollout without per-PC installs, host the pane on an approved HTTPS site and move AI calls to a small server with an organisation API key, then deploy the manifest centrally from the Microsoft 365 admin centre. See `FEATURE-ROADMAP.md`.

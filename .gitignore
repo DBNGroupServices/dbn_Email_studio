@@ -7,3 +7,8 @@ __pycache__/
 *.log
 artifacts/
 .office-tools/
+node_modules/
+/package-lock.json
+/package.json
+dist/
+*.zip

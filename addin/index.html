@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self'">
+<title>DBN Email Studio</title>
+<link rel="icon" href="icons/email-blue-v2-32.png">
+<link rel="stylesheet" href="taskpane.css">
+</head>
+<body>
+<main class="app">
+  <header class="top"><img src="icons/email-blue-v2-64.png" alt="" width="36" height="36"><div class="brand"><h1>DBN Email Studio</h1></div></header>
+  <section class="card">
+    <h3>Outlook add-in — install</h3>
+    <ol class="small">
+      <li>Download the add-in manifest: <a href="manifest.xml" download>manifest.xml</a></li>
+      <li>In Outlook Classic: <strong>Get Add-ins → My add-ins → Custom add-ins → Add a custom add-in → Add from file</strong>, choose the file, and confirm.</li>
+      <li>Restart Outlook, open any email and click <strong>Email Studio</strong> on the Home tab.</li>
+      <li>In the pane: <strong>Settings (gear) → AI connection</strong>, paste your Claude API key and press <strong>Save &amp; test</strong>.</li>
+    </ol>
+    <p class="small muted">No desktop app is needed. If your organisation blocks custom add-ins, give manifest.xml to IT to deploy.</p>
+  </section>
+  <p class="small"><a href="help.html">Help and troubleshooting</a></p>
+</main>
+</body>
+</html>

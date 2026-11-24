@@ -31,9 +31,10 @@ class OfficeAddinTests(unittest.TestCase):
                 public=office_tls.public_status(main)
                 self.assertTrue(status['running']);self.assertFalse(public['trust_installed_by_app'])
                 self.assertNotIn('key',public)
-                raw=(Path(directory)/'office_tls.dat').read_bytes();self.assertNotIn(b'PRIVATE KEY',raw)
-                saved=store.read('office_tls',{})
-                context=ssl.create_default_context(cadata=base64.b64decode(saved['cert']).decode())
+                raw=(Path(directory)/(office_tls.STORE_KEY+'.dat')).read_bytes();self.assertNotIn(b'PRIVATE KEY',raw)
+                saved=store.read(office_tls.STORE_KEY,{})
+                # Trust only the CA, exactly as Windows does after installation.
+                context=ssl.create_default_context(cadata=base64.b64decode(saved['ca_cert']).decode())
                 self.assertEqual(context.verify_mode,ssl.CERT_REQUIRED)
                 secure=main.office_server
                 self.assertIs(secure.chatgpt,main.chatgpt)

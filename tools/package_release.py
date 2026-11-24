@@ -41,7 +41,7 @@ with zipfile.ZipFile(OUTPUT,'w',zipfile.ZIP_DEFLATED) as package:
 with zipfile.ZipFile(OUTPUT) as checked:
     assert checked.testzip() is None
 with zipfile.ZipFile(ROOT/'DBN Email Studio - Source.zip','w',zipfile.ZIP_DEFLATED) as source:
-    for filename in ('app.py','chatgpt_auth.py','outlook_bridge.py','office_tls.py','windows_shell.py','README.md','START HERE.txt','requirements.txt','requirements-build.txt','build.ps1','.gitignore','THIRD-PARTY-NOTICES.txt','TEST-RESULTS.md'):
+    for filename in ('app.py','chatgpt_auth.py','outlook_bridge.py','office_tls.py','windows_shell.py','autostart.py','profiles.py','CHANGELOG.md','README.md','START HERE.txt','requirements.txt','requirements-build.txt','build.ps1','.gitignore','THIRD-PARTY-NOTICES.txt','TEST-RESULTS.md'):
         source.write(ROOT/filename,filename)
     for folder in ('web','assets','tests','tools','examples','hooks','office-addin'):
         for file in (ROOT/folder).rglob('*'):

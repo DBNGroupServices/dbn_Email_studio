@@ -1,5 +1,25 @@
 # DBN Email Studio
 
+**Version 3.0.** DBN Email Studio is an Outlook Classic add-in that reads the email you have open and drafts a reply in your voice and tone with **Claude**. **No desktop app is needed**: the add-in is hosted on GitHub Pages and works whenever Outlook is open. Nothing is ever sent automatically.
+
+- **Set up and use:** [addin/README.md](addin/README.md)
+- **What changed:** [CHANGELOG.md](CHANGELOG.md)
+
+Features include one-click quick replies, voice profiles that learn from your example emails, tone sliders, side-by-side comparison of 2–3 drafts, refine chips with version history, Reply / Reply all and new email with proper formatting, before-you-send checks and a security disclosure guard.
+
+> The Windows desktop engine (`app.py`, `web/`, `office-addin/`) from versions 1.x–2.0 is still in the repository but is **no longer needed** for the add-in. It is kept only in case you want the standalone app later.
+
+### Developing
+- Python tests: `python -m unittest discover -s tests` (on Linux set `DBN_EMAIL_TEST_PLAINTEXT_STORE=1`).
+- JS tests: `node tests/test_draft_tools.js`, `node tests/test_office_client.js`, `node tests/test_session_api.js`.
+- Hosted add-in: `node tests/test_addin.js` and `node tests/test_addin_browser.js` (needs Playwright).
+- v2 engine pane: `node tests/test_taskpane_browser.js` (needs Playwright).
+- Windows build: `./build.ps1`, then `python tools/package_release.py`. GitHub Actions does both on every push; download the zip from the run's *Artifacts*.
+
+---
+
+## Version 1.x notes (desktop app)
+
 A standalone Windows email writing assistant. Open the app, drop in an email or screenshot, add your dot points and create an editable response. It runs independently of ChatGPT and Codex.
 
 Version 1.1 refreshes the interface with a light workspace, blue accents, consistent line icons, clearer task cards and more readable draft text. The design takes inspiration from [Devoq's modern SaaS UI article](https://www.devoq.io/modern-saas-website-design-best-ui-ideas-for-software-product-websites/).

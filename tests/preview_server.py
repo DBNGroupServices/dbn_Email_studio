@@ -8,7 +8,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import app
 import base64
 
-data=Path(__file__).resolve().parents[1]/'.test-data'/'browser-qa'
+data=Path(__file__).resolve().parents[1]/'.test-data'/('browser-qa-'+str(__import__('os').getpid()))
 store=app.Store(data)
 store.save_settings({'provider':'chatgpt','api_key':'sk-fictional-browser-test-key','name':'Sam','save_history':True})
 store.write('chatgpt', {})
@@ -17,6 +17,14 @@ def simulated_ai(key,path,payload=None,**kwargs):
     if path.startswith('models/'):
         return {'id':path[7:]}
     context=json.loads(payload['input'][0]['content'][0]['text'])
+    if context.get('number_of_variants'):
+        labels=['Direct','Warm','Detailed']
+        return {'status':'completed','output':[{'type':'message','content':[{'type':'output_text','text':json.dumps({
+            'variants':[{'label':labels[i],'subject':'Re: Saturday dock access','body':f'Hi Jordan,\n\nOption {i+1}: yes, access is confirmed from 7am.\n\nKind regards,\nSam'} for i in range(context['number_of_variants'])],
+            'checks':[]})}]}]}
+    if context.get('quick_intent') and not context['requested_revision']:
+        result={'subject':'Re: Saturday dock access','body':'Hi Jordan,\n\nYes, the loading dock is available from 7am on Saturday.\n\n- Sign in at the security desk\n- Complete the site induction\n- Goods lift booked 7am to 12pm\n\nPlease send the names of attending contractors by [confirm deadline].\n\nKind regards,\nSam','checks':['The deadline for contractor names was not supplied.']}
+        return {'status':'completed','output':[{'type':'message','content':[{'type':'output_text','text':json.dumps(result)}]}]}
     if context['requested_revision']:
         result={'subject':context['current_draft']['subject'],'body':context['current_draft']['body']+'\n\n[Simulated revision applied]','checks':[]}
     else:
@@ -41,13 +49,14 @@ def fake_listing(folder=None,query='',offset=0):
         'emails':messages[offset:offset+50],'has_more':len(messages)>offset+50}
 app.outlook_bridge.list_emails=fake_listing
 app.outlook_bridge.open_draft=lambda subject,body,source=None: {'ok':True,'action':'reply' if source else 'new'}
-server=app.AppServer(('127.0.0.1',8771),store)
+port=int(sys.argv[sys.argv.index('--port')+1]) if '--port' in sys.argv else 8771
+server=app.AppServer(('127.0.0.1',port),store)
 if '--signed-in' in sys.argv:
     store.write('chatgpt', {'active':'oaiapp_fixture','welcomed':False,'profiles':{'oaiapp_fixture':{
         'email':'sam@example.com','name':'Sam','access_token':'fictional-access',
         'scopes':['chatgpt.tokens.use.direct'],'models':{'gpt-6.1-sol':'GPT-6.1 Sol'}}}})
     server.chatgpt.models=lambda: {'gpt-6.1-sol':'GPT-6.1 Sol'}
     server.chatgpt.access_token=lambda: 'fictional-access'
-print('TEST ONLY: simulated AI and Outlook, localhost:8771',flush=True)
+print(f'TEST ONLY: simulated AI and Outlook, localhost:{port}',flush=True)
 try:server.serve_forever()
 finally:server.server_close()
