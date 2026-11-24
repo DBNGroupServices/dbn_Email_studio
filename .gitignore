@@ -1,0 +1,9 @@
+.build-deps/
+build/
+__pycache__/
+*.spec
+.test-data/
+.env
+*.log
+artifacts/
+.office-tools/

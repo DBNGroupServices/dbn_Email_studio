@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="app-token" content="__SESSION_TOKEN__">
+  <meta name="theme-color" content="#4263eb">
+  <title>DBN Email Studio</title>
+  <link rel="icon" href="/icons/email-blue-v2.ico" type="image/x-icon">
+  <link rel="icon" href="/icons/email-blue-v2-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/icons/email-blue-v2-192.png">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/session-api.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+<svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-compose" viewBox="0 0 24 24"><path d="m15 5 4 4M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15zM12 20h8"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h5m4 0h7M4 17h9m4 0h3"/><circle cx="11" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></symbol>
+  <symbol id="i-reply" viewBox="0 0 24 24"><path d="m9 5-6 6 6 6M3 11h10a7 7 0 0 1 7 7v1"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m13 3 2.2 6.8L22 12l-6.8 2.2L13 21l-2.2-6.8L4 12l6.8-2.2zM4 3v4M2 5h4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12l3 3 5-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18M3 9h6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+</defs></svg>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="DBN Email Studio home"><span class="brand-icon"><svg class="icon"><use href="#i-mail"/></svg><span>✦</span></span><span>DBN<span class="brand-sub">Email Studio</span></span></a>
+    <button class="new-button" id="new-draft" aria-label="New email"><svg class="icon"><use href="#i-plus"/></svg><span class="nav-text">New email</span><kbd>Ctrl N</kbd></button>
+    <div class="nav-label">WORKSPACE</div>
+    <button class="nav-item active" id="compose-nav" aria-label="Compose"><svg class="icon"><use href="#i-compose"/></svg><span class="nav-text">Compose</span><svg class="icon nav-chevron"><use href="#i-chevron"/></svg></button>
+    <button class="nav-item" id="history-nav" aria-label="Recent drafts"><svg class="icon"><use href="#i-clock"/></svg><span class="nav-text">Recent drafts</span><span class="count" id="history-count">0</span></button>
+    <div class="sidebar-bottom">
+      <div class="sidebar-tip"><span class="tip-icon"><svg class="icon"><use href="#i-sparkles"/></svg></span><strong>Your style. Every time.</strong><p>Set your tone, signature and writing preferences once.</p><span class="tip-detail">Less explaining. More doing.</span></div>
+      <button class="nav-item settings-link" id="settings-nav" aria-label="Settings & writing style"><svg class="icon"><use href="#i-sliders"/></svg><span class="nav-text">Settings & writing style</span></button>
+      <div class="local-note"><span class="local-dot"></span><span>Runs on your computer<span class="muted">AI drafting through OpenAI</span></span></div>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar"><div class="breadcrumbs"><svg class="icon"><use href="#i-grid"/></svg><span class="breadcrumb">Workspace</span><span class="slash">/</span><span id="page-label">Compose</span></div><div class="topbar-actions"><span class="workspace-label"><svg class="icon"><use href="#i-shield"/></svg>Your local workspace</span><button id="connection" class="connection"><span class="status-dot"></span><span id="connection-label">Connecting…</span><svg class="icon"><use href="#i-chevron"/></svg></button></div></header>
+    <section id="compose-view">
+      <div class="page-heading"><div><div class="eyebrow"><span></span> YOUR EVERYDAY WRITING ASSISTANT</div><h1>Great emails. <span>Less effort.</span></h1><p>Turn emails, screenshots and rough notes into the right words.</p></div><div class="heading-detail"><svg class="icon"><use href="#i-sparkles"/></svg><span>A little context.<br><strong>A much better email.</strong></span></div></div>
+      <div class="setup-banner" id="setup-banner" hidden><span class="banner-icon"><svg class="icon"><use href="#i-sparkles"/></svg></span><div><strong>Your writing assistant is one step away.</strong><span>Connect your ChatGPT plan once, then make this workspace yours.</span></div><button id="setup-button">Connect ChatGPT <svg class="icon"><use href="#i-arrow"/></svg></button></div>
+      <div class="workspace-grid">
+        <section class="panel input-panel" aria-labelledby="input-title">
+          <div class="panel-heading"><div><span class="panel-icon"><svg class="icon"><use href="#i-mail"/></svg></span><div><h2 id="input-title">Your starting point</h2><p>Bring the email. Add your thoughts.</p></div></div><button class="text-button example-button" id="sample-button">Try an example <svg class="icon"><use href="#i-arrow"/></svg></button></div>
+          <div class="mode-tabs" role="group" aria-label="Email task"><button class="selected" data-mode="reply" aria-label="Reply to an email" aria-pressed="true"><svg class="icon"><use href="#i-reply"/></svg><span>Reply<span>Answer an email</span></span></button><button data-mode="rewrite" aria-label="Rewrite a draft" aria-pressed="false"><svg class="icon"><use href="#i-compose"/></svg><span>Rewrite<span>Polish a draft</span></span></button><button data-mode="compose" aria-label="From dot points" aria-pressed="false"><svg class="icon"><use href="#i-sparkles"/></svg><span>New email<span>From dot points</span></span></button></div>
+          <div class="outlook-import-row"><button type="button" id="outlook-import" class="outlook-import"><svg class="icon"><use href="#i-mail"/></svg>Import from Outlook Classic<svg class="icon"><use href="#i-arrow"/></svg></button><p>Browse your emails, then choose the message to import.</p></div>
+          <div class="field source-field"><label for="source" id="source-label">The email you received <span>or attach it below</span></label><textarea id="source" rows="5" placeholder="Paste the email here, or add a screenshot below…" maxlength="60000"></textarea></div>
+          <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-label="Attach screenshots, emails or documents"><span class="upload-icon"><svg class="icon"><use href="#i-upload"/></svg></span><div><strong>Drop files here, or <span class="browse">browse</span></strong><span>Emails, screenshots, PDFs & documents</span></div><small>Up to 10 files · 25 MB total<span>Paste a screenshot with <kbd>Ctrl V</kbd></span></small><input id="file-input" type="file" multiple accept=".png,.jpg,.jpeg,.webp,.eml,.msg,.pdf,.docx,.txt,.html,.htm" hidden></div>
+          <div id="attachments" class="attachments"></div>
+          <div id="upload-progress" class="inline-note" role="status" hidden></div>
+          <div id="attachment-notes" class="inline-note" hidden></div>
+          <div class="field points-field"><label for="points" id="points-label">What would you like to say? <span>dot points are perfect</span></label><textarea id="points" rows="3" placeholder="The key points, the outcome you want, and any details to keep…" maxlength="25000"></textarea></div>
+          <details class="recipient-details"><summary>Address it to someone <span>optional</span></summary><label for="recipient">Recipient name or greeting</label><input id="recipient" placeholder="e.g. Hi Maddy," maxlength="500"></details>
+          <div class="options-grid"><div class="field"><label for="tone">Tone</label><select id="tone"><option>Professional</option><option>Warm & professional</option><option>Firm & clear</option><option>Customer focused</option><option>Brief & direct</option></select></div><div class="field"><label for="length">Length</label><select id="length"><option>Brief</option><option selected>Standard</option><option>Detailed</option></select></div><div class="field"><label for="format">Layout</label><select id="format"><option>Paragraphs</option><option>Bullet points</option></select></div></div>
+          <div class="generate-row"><button class="primary generate-button" id="generate"><svg class="icon spark"><use href="#i-sparkles"/></svg><span id="generate-label">Create my reply</span><kbd>Ctrl ↵</kbd><svg class="icon button-arrow"><use href="#i-arrow"/></svg></button><p><span class="model-pill"><span></span><span id="model-label">GPT-6.1 Sol</span></span><span><span id="billing-label">Using ChatGPT plan</span> · <a id="compose-usage" href="https://chatgpt.com/#settings/Usage" target="_blank" rel="noopener noreferrer">Manage usage ↗</a></span></p></div>
+          <p class="data-note">Your source material is sent to OpenAI when you create or refine a draft. Uploaded files are not saved by this app.</p>
+        </section>
+
+        <section class="panel output-panel" aria-labelledby="output-title">
+          <div class="panel-heading"><div><span class="panel-icon output-icon"><svg class="icon"><use href="#i-sparkles"/></svg></span><div><h2 id="output-title">Your draft</h2><p>The right words, ready for your review.</p></div></div><span class="output-badge" id="output-badge">READY WHEN YOU ARE</span></div>
+          <div class="empty-state" id="empty-state"><div class="empty-art" aria-hidden="true"><div class="art-orbit"></div><div class="art-dots"></div><div class="art-back"></div><div class="paper-illustration"><span class="art-mail"><svg class="icon"><use href="#i-mail"/></svg></span><div class="paper-lines"><span></span><span></span><span></span><span></span></div><span class="paper-seal"><svg class="icon"><use href="#i-check"/></svg></span></div><span class="art-spark"><svg class="icon"><use href="#i-sparkles"/></svg></span></div><span class="empty-eyebrow">FROM FIRST THOUGHT TO FINAL DRAFT</span><h3>Your next great email<br>starts here.</h3><p>Add your email or dot points on the left.<br>We’ll help you make it clear, polished and yours.</p><div class="empty-tags"><span><svg class="icon"><use href="#i-check"/></svg>Your voice</span><span><svg class="icon"><use href="#i-check"/></svg>The right tone</span><span><svg class="icon"><use href="#i-check"/></svg>Details preserved</span></div></div>
+          <div id="busy-state" class="busy-state" hidden><div class="spinner"></div><h3>Finding the right words…</h3><p id="busy-label">Reading your email and writing your draft.</p><small>You can stay here while the AI works.</small></div>
+          <div id="draft-result" hidden>
+            <div class="checks" id="checks" hidden><strong>A few details to review</strong><ul id="checks-list"></ul></div>
+            <div class="field result-subject"><label for="draft-subject">Subject</label><input id="draft-subject" maxlength="1000" placeholder="Email subject"></div>
+            <label class="sr-only" for="draft-body">Email draft body</label><textarea id="draft-body" class="draft-body" maxlength="30000" placeholder="Your draft…" spellcheck="true"></textarea>
+            <div class="draft-meta"><span id="word-count">0 words</span><span>Click anywhere to edit</span><span id="draft-model"></span></div>
+            <div class="draft-actions"><button class="primary" id="copy-body"><svg class="icon"><use href="#i-copy"/></svg>Copy email</button><button class="secondary" id="copy-all">Copy with subject</button><button class="icon-button" id="download" title="Download text file" aria-label="Download draft as text"><svg class="icon"><use href="#i-download"/></svg></button></div>
+            <div class="outlook-export-row"><button type="button" id="outlook-open" class="outlook-import"><svg class="icon"><use href="#i-mail"/></svg><span id="outlook-open-label">Open in Outlook Classic</span><svg class="icon"><use href="#i-arrow"/></svg></button><p id="outlook-export-note">Opens an editable email for you to review and send.</p></div>
+            <div class="refinement"><label for="refinement">Want to fine-tune it?</label><div class="refine-chips"><button data-refine="Make this shorter, keeping all material facts and actions.">Shorter</button><button data-refine="Make the wording warmer and more approachable.">Warmer</button><button data-refine="Make this firmer and clearer, while remaining respectful.">Firmer</button><button data-refine="Simplify the wording and remove jargon. Keep all material details.">Simpler</button></div><div class="refine-input"><textarea id="refinement" rows="2" maxlength="12000" placeholder="e.g. Remove the apology and add a clear next step…"></textarea><button id="refine" class="refine-button" aria-label="Apply changes">↑</button></div><small>Uses your edited draft and the source material still in this workspace.</small></div>
+          </div>
+          <div class="output-footer"><svg class="icon"><use href="#i-shield"/></svg><span>You’re always in control of the final wording.</span></div>
+        </section>
+      </div>
+      <footer class="page-footer"><span>Made for your everyday correspondence.</span><span>Review. Refine. Ready to send.</span></footer>
+    </section>
+
+    <section id="history-view" hidden><div class="page-heading"><div class="eyebrow">PICK UP WHERE YOU LEFT OFF</div><h1>Your recent drafts.</h1><p>Up to 30 drafts saved on this computer, protected by your Windows account.</p></div><div class="history-toolbar"><span>Attachments and original source material are not saved.</span><button id="clear-history" class="text-button danger">Clear history</button></div><div id="history-list"></div></section>
+  </main>
+</div>
+
+<dialog id="settings-dialog"><form id="settings-form"><div class="dialog-heading"><div><div class="eyebrow">SET IT ONCE</div><h2>Make this your studio.</h2><p>Your AI connection and the way you like to write.</p></div><button type="button" class="dialog-close" id="close-settings" aria-label="Close settings">×</button></div><div class="dialog-body">
+  <div class="settings-section-title">01 <span>AI connection</span></div>
+  <label for="provider">Use for drafting</label><select id="provider"><option value="chatgpt">My existing ChatGPT plan</option><option value="api">Separate OpenAI API billing</option></select>
+  <section id="chatgpt-connection" class="chatgpt-card"><h3>Use your ChatGPT plan</h3><p>Write emails using your eligible ChatGPT Plus or Pro allowance and available credits.</p><p id="chatgpt-account" class="chatgpt-account">Sign in to connect your plan.</p><label for="chatgpt-accounts">ChatGPT account</label><select id="chatgpt-accounts"><option value="">Add an account</option></select><div class="chatgpt-actions"><button type="button" id="chatgpt-signin" class="chatgpt-button">Continue with ChatGPT</button><button type="button" id="chatgpt-new" class="text-button">Use another account</button><button type="button" id="chatgpt-signout" class="text-button" hidden>Sign out</button></div><div class="help-row"><a href="https://chatgpt.com/#settings/Usage" target="_blank" rel="noopener noreferrer">Manage usage ↗</a><button type="button" id="chatgpt-models" class="text-button">Refresh models</button></div><p id="chatgpt-status" role="status"></p><p class="help">Sign in securely on OpenAI’s website and allow “Use your ChatGPT plan”. This app shares your plan’s usage limits. It never switches to API billing automatically.</p></section>
+  <div id="api-connection">
+  <label for="api-key">OpenAI API key <span id="key-status"></span></label><input type="password" id="api-key" autocomplete="off" placeholder="sk-…" maxlength="512"><div class="help-row"><a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">Create an API key ↗</a><button type="button" id="test-connection" class="text-button">Save & test drafting</button></div>
+  <div class="network-check-row"><span>Connection trouble?</span><button type="button" id="check-network" class="text-button">Check network</button><small>No API key, email content or paid generation is used.</small></div>
+  <p class="help">API usage is billed separately from ChatGPT. The key stays on this computer, encrypted with your Windows account. Email content is sent to OpenAI for drafting.</p>
+  </div>
+  <label for="model">AI model</label><select id="model"><option value="gpt-6.1-sol">Sign in to load your models</option></select><p class="help">ChatGPT models are loaded from your signed-in account. Each draft uses the connection selected above.</p><button type="button" id="test-drafting" class="text-button">Test drafting with fictional text</button><p class="help">Uses a small amount of the selected plan allowance or API credit. Your emails and writing preferences are not used.</p>
+  <div id="settings-feedback" class="settings-feedback" role="status" hidden></div>
+  <div class="settings-section-title">02 <span>Your writing identity</span></div>
+  <div class="settings-columns"><div><label for="sender-name">Your name</label><input id="sender-name" maxlength="500" placeholder="Name for your sign-off"></div><div><label for="sender-role">Role</label><input id="sender-role" maxlength="500" placeholder="e.g. Security Manager"></div></div>
+  <label for="organisation">Organisation</label><input id="organisation" maxlength="500" placeholder="Your company or workplace">
+  <label for="signature">Email signature <span>optional</span></label><textarea id="signature" rows="3" maxlength="6000" placeholder="Kind regards,&#10;Your name&#10;Your title"></textarea>
+  <label for="writing-style">Your standing writing instructions</label><textarea id="writing-style" rows="4" maxlength="6000"></textarea><p class="help">Applied to every draft. Add preferences here once, such as “keep it brief” or “avoid unnecessary apologies”.</p>
+  <div class="settings-section-title">03 <span>Local history</span></div><label class="checkbox-label"><input id="save-history" type="checkbox"> Save generated drafts on this computer</label><p class="help">Only draft results are saved, with Windows encryption. Switching this off stops new saves; use Recent drafts → Clear history to delete existing drafts.</p><button type="button" class="text-button danger" id="forget-key">Remove saved API key</button>
+  </div><div class="dialog-footer"><button type="button" id="shutdown" class="text-button">Quit app</button><button class="primary" type="submit" id="save-settings">Save settings <span>→</span></button></div></form></dialog>
+<dialog id="preview-dialog"><div class="dialog-heading"><h2 id="preview-title">Attachment preview</h2><button class="dialog-close" id="close-preview" aria-label="Close preview">×</button></div><div class="dialog-body"><img id="preview-image" alt="Attached screenshot" hidden><pre id="preview-text"></pre></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="outlook-picker-dialog" aria-labelledby="outlook-picker-title"><div class="dialog-heading"><div><div class="eyebrow">OUTLOOK CLASSIC</div><h2 id="outlook-picker-title">Choose an email</h2><p>Select a message below, then import it into your workspace.</p></div><button type="button" id="outlook-picker-close" class="dialog-close" aria-label="Close email picker">×</button></div><div class="outlook-picker-body"><aside class="outlook-folder-pane"><label for="outlook-mailbox">Mailbox</label><select id="outlook-mailbox" aria-label="Browse mailbox"></select><div class="outlook-folder-actions"><button type="button" id="outlook-inbox" class="text-button">Inbox</button><button type="button" id="outlook-parent" class="text-button">↑ Parent folder</button></div><div id="outlook-folders" aria-label="Subfolders"></div></aside><section class="outlook-message-pane" aria-label="Emails"><div id="outlook-folder-path"></div><form id="outlook-search-form" class="outlook-search"><input id="outlook-search" type="search" maxlength="200" placeholder="Search subject or sender" aria-label="Search subject or sender"><button type="submit" id="outlook-search-button" class="secondary">Search</button><button type="button" id="outlook-refresh" class="text-button">Refresh</button></form><p id="outlook-picker-status" role="status"></p><fieldset id="outlook-email-list"><legend class="sr-only">Select an email to import</legend></fieldset><div class="outlook-pages"><button type="button" id="outlook-previous" class="text-button">← Previous</button><span id="outlook-page-label"></span><button type="button" id="outlook-next" class="text-button">Next →</button></div></section></div><div class="outlook-picker-note">Browsing stays on this computer. Messages are not marked as read. Only the selected email is imported; nothing is sent to AI until you generate.</div><div class="dialog-footer"><button type="button" id="outlook-picker-cancel" class="text-button">Cancel</button><button type="button" id="outlook-picker-import" class="primary" disabled>Import selected email</button></div></dialog>
+<dialog id="plan-welcome"><div class="dialog-heading"><div><h2>You’re using your ChatGPT plan</h2><p>Eligible requests in Email Studio use your existing plan allowance or credits.</p></div></div><div class="dialog-body"><p class="help">Review your plan and this app’s limits in <a href="https://chatgpt.com/#settings/Usage" target="_blank" rel="noopener noreferrer">ChatGPT usage settings</a>.</p><button type="button" id="plan-welcome-close" class="primary">Got it</button></div></dialog>
+<div class="app-error" id="app-error" role="alert" hidden><div><span id="error-message"></span><a id="error-manage-usage" href="https://chatgpt.com/#settings/Usage" target="_blank" rel="noopener noreferrer" hidden>Manage usage ↗</a><details id="error-details" hidden><summary>OpenAI connection details</summary><pre id="error-diagnostics"></pre></details></div><button id="dismiss-error" aria-label="Dismiss error">×</button></div>
+</body>
+</html>

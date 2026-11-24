@@ -1,0 +1,36 @@
+DBN EMAIL STUDIO
+Your everyday email writing assistant
+
+1. Open "DBN Email Studio.exe".
+2. Open Settings and leave "My existing ChatGPT plan" selected.
+3. Choose "Continue with ChatGPT", sign in on OpenAI's website, and allow
+   "Use your ChatGPT plan". Return to Email Studio when sign-in completes.
+4. Add your signature and preferred writing style once.
+
+Then paste an email, drop in a screenshot or saved email, or add dot points.
+Choose Reply, Rewrite or From dot points, and create your draft.
+Edit it, ask for changes, then copy the final email into Outlook.
+
+OUTLOOK CLASSIC SHORTCUTS
+Open Outlook Classic, then click "Import from Outlook Classic".
+Browse folders or search subject/sender, select an email, then press
+"Import selected email". Cancel leaves your work in place.
+After editing your draft, use "Open reply in Outlook Classic" to review it there.
+The app does not send emails automatically.
+
+CONNECTION TROUBLE
+Use Continue with ChatGPT again if your session needs reconnecting.
+Manage usage opens your ChatGPT plan and app limits.
+Test drafting uses fictional text and a small amount of your selected allowance.
+The app never automatically switches to separate API billing.
+
+The app runs independently of ChatGPT and Codex. No Python installation needed.
+AI drafting needs internet access and an eligible, connected ChatGPT plan.
+Separate API billing is an optional connection in Settings.
+
+Your saved sign-in, preferences and drafts are encrypted for your Windows account.
+Your source material is sent to OpenAI when you create or refine a draft.
+The app does not send emails. Review the draft before using it.
+
+To fully close the app: Settings > Quit app.
+For details, supported files and troubleshooting, see README.md.

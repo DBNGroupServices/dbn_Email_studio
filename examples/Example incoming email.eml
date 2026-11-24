@@ -1,0 +1,34 @@
+From: Alex <alex@example.com>
+To: Email Studio <studio@example.com>
+Subject: Security coverage for tenant event
+Date: Tue, 27 Oct 2026 10:00:00 +1100
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============7170892436578540120=="
+
+--===============7170892436578540120==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hi,
+
+Could you please check whether two security officers are available for our ev=
+ent on Friday, 30 October, from 5:00 pm to 9:00 pm? We expect approximately 8=
+0 guests.
+
+Please let us know what information you need to prepare a quote.
+
+Kind regards,
+Alex
+
+This is a fictional example for testing Email Studio.
+
+--===============7170892436578540120==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Event notes.txt"
+MIME-Version: 1.0
+
+RmljdGlvbmFsIHRlc3QgZXZlbnQuIEd1ZXN0IGNvdW50OiA4MC4gVmVudWUgdG8gYmUgY29uZmly
+bWVkLg==
+
+--===============7170892436578540120==--

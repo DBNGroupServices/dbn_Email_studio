@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict');
+const bridge=require('../web/office/office-client.js');
+(async()=>{
+  let inserted,reply;
+  const item={itemId:'source',subject:'Fictional subject',body:{getAsync:(type,cb)=>cb({status:'succeeded',value:'Fictional body'})},displayReplyForm:value=>{reply=value;}};
+  const office={context:{mailbox:{item}}};
+  const context=await bridge.read(office);assert.equal(context.text,'Fictional body');assert.equal(context.compose,false);
+  await bridge.apply(office,context,'Hello <script> & $40\nLine 2');assert.ok(reply.htmlBody.includes('&lt;script&gt;'));assert.ok(reply.htmlBody.includes('<br>'));
+  office.context.mailbox.item={...item,itemId:'different'};
+  await assert.rejects(()=>bridge.apply(office,context,'Wrong target'),/changed/);
+  const compose={subject:{getAsync:cb=>cb({status:'succeeded',value:'Subject'})},getSelectedDataAsync:(type,cb)=>cb({status:'succeeded',value:{data:'Only selected words',sourceProperty:'body'}}),body:{getAsync:(type,cb)=>cb({status:'succeeded',value:'Full quoted thread'}),setSelectedDataAsync:(value,options,cb)=>{inserted=value;cb({status:'succeeded'});}}};
+  office.context.mailbox.item=compose;
+  const selected=await bridge.read(office);assert.equal(selected.text,'Only selected words');assert.equal(selected.compose,true);
+  await bridge.apply(office,selected,'Edited & safe');assert.equal(inserted,'Edited &amp; safe');
+  assert.equal(Object.hasOwn(compose,'sendAsync'),false);
+  compose.getSelectedDataAsync=(type,cb)=>cb({status:'failed',error:{message:'Selection API unavailable'}});
+  const fallback=await bridge.read(office);assert.equal(fallback.text,'Full quoted thread');assert.match(fallback.selectionWarning,/full draft/);
+  compose.body.getAsync=(type,cb)=>cb({status:'failed',error:{message:'Protected body'}});
+  await assert.rejects(()=>bridge.read(office),/Protected body/);
+  assert.equal(bridge.target(office).item,compose);
+  assert.equal(bridge.target({}),null);
+  console.log('Office adapter: selected text, safe insertion, reply form and item-change protection passed.');
+})().catch(error=>{console.error(error);process.exitCode=1;});
