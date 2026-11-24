@@ -172,6 +172,7 @@ async function run(task){
 }
 async function generate(){
   if(state.busy)return;
+  if(!state.store)return status('Still connecting to Outlook… try again in a moment.','error');
   if(!state.store.apiKey()){openSettings();return status('Add your Claude API key first (Settings → AI connection).','error');}
   setBusy(true,state.mode==='tools'?'Working…':'Writing your draft…');
   try{
@@ -263,7 +264,7 @@ async function copyResult(){
 }
 
 /* ---------- settings drawer ---------- */
-function openSettings(){$('drawer').hidden=false;connection();$('close-settings').focus();}
+function openSettings(){$('drawer').hidden=false;$('close-settings').focus();if(state.store)connection();else settingsStatus('Still connecting to Outlook… settings will appear in a moment.',true);}
 function closeSettings(){$('drawer').hidden=true;$('open-settings').focus();}
 async function saveKey(){
   const typed=$('api-key').value.trim(),model=$('model').value;
@@ -353,22 +354,31 @@ function wire(){
   setSeg('length',prefs.get('length','Standard'));
 }
 
-function start(inOutlook){
+/* ---------- start-up ----------
+   The buttons are wired straight away; mailbox settings and the open email are
+   loaded once Outlook confirms the add-in is ready (Office.onReady). */
+let started=false;
+function init(inOutlook){
+  if(started)return;started=true;window.__dbnStarted=true;
   state.store=DBNStore.create();
-  wire();setMode('reply');loadAll();syncButtons();
+  loadAll();syncButtons();
   const l=prefs.get('length',null);if(l)setSeg('length',l);
   if(!state.store.apiKey())banner('Welcome! Add your Claude API key to start drafting.','Open settings',openSettings);
-  if(!inOutlook)$('host-status').textContent='Browser preview · open Email Studio from the Outlook ribbon to work with your emails.';
+  if(!inOutlook){$('host-status').textContent='Browser preview · open Email Studio from the Outlook ribbon to work with your emails.';return;}
+  applyOfficeTheme();
+  readCurrent().then(()=>{if(!state.store.apiKey())banner('Welcome! Add your Claude API key to start drafting.','Open settings',openSettings);});
+  try{Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged,()=>{onItemChanged();});}catch(error){/* older Outlook: use the reload button */}
 }
-if(window.Office&&Office.onReady){
-  Office.onReady(async info=>{
-    const inOutlook=!!(info&&info.host===Office.HostType.Outlook);
-    start(inOutlook);
-    if(inOutlook){
-      applyOfficeTheme();
-      await readCurrent();
-      if(!state.store.apiKey())banner('Welcome! Add your Claude API key to start drafting.','Open settings',openSettings);
-      try{Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged,()=>{onItemChanged();});}catch(error){/* older Outlook: use the reload button */}
-    }
-  });
-}else start(false);
+function boot(){
+  try{wire();setMode('reply');syncButtons();}
+  catch(error){status('Start-up error: '+error.message,'error');throw error;}
+  $('connection-label').textContent='Connecting…';
+  if(window.Office&&typeof Office.onReady==='function'){
+    Office.onReady(info=>{
+      window.__dbnOfficeReady=true;
+      const inOutlook=!!(info&&info.host===Office.HostType.Outlook)||!!(Office.context&&Office.context.mailbox);
+      try{init(inOutlook);}catch(error){status('Start-up error: '+error.message,'error');}
+    });
+  }else init(false);
+}
+boot();

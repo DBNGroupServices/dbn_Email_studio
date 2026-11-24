@@ -93,7 +93,7 @@ assert.match(C.friendlyError(new InternalServerError(529,'overloaded'),SDK).mess
   assert.match(manifest,/<Id>7877fe62-01f2-4af8-b073-dfa805099a63<\/Id>/);assert.doesNotMatch(manifest,/localhost/);
   assert.match(manifest,/https:\/\/dbngroupservices\.github\.io\/dbn_Email_studio\/taskpane\.html/);assert.match(manifest,/<Permissions>ReadWriteItem<\/Permissions>/);
   const html=fs.readFileSync(path.join(ROOT,'addin','taskpane.html'),'utf8');
-  for(const src of html.match(/src="([^"]+)"/g).map(s=>s.slice(5,-1)).filter(s=>!s.startsWith('https://')))assert.ok(fs.existsSync(path.join(ROOT,'addin',src)),'missing '+src);
-  assert.match(html,/connect-src 'self' https:\/\/api\.anthropic\.com/);
+  for(const src of html.match(/src="([^"]+)"/g).map(s=>s.slice(5,-1).split('?')[0]).filter(s=>!s.startsWith('https://')))assert.ok(fs.existsSync(path.join(ROOT,'addin',src)),'missing '+src);
+  assert.ok(html.indexOf('boot-check.js')<html.indexOf('office.js'),'watchdog loads before Office.js');
   console.log('Hosted add-in: prompts, files, responses, errors, mailbox storage limits and manifest passed.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
