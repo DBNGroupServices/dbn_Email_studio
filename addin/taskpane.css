@@ -105,3 +105,7 @@ details textarea{margin-top:6px}
 [hidden]{display:none!important}
 .card a,.muted a{color:var(--accent)}
 code{font-size:11px;background:var(--surface-2);padding:1px 4px;border-radius:4px}
+#settings-status.toast{position:sticky;bottom:0;margin:0;padding:10px 12px;border-radius:9px;background:var(--surface);border:1px solid var(--border);box-shadow:0 4px 14px rgba(20,40,80,.15);font-weight:600}
+#settings-status.ok{color:var(--ok);border-color:var(--ok)}
+#settings-status.error{color:var(--stop);border-color:var(--stop)}
+button.done{background:var(--ok)!important;color:#fff!important;border-color:var(--ok)!important}

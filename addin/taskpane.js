@@ -15,7 +15,15 @@ const state={store:null,context:null,mode:'reply',writeKind:'compose',intent:'',
 const prefs={get(k,d){try{const v=localStorage.getItem('dbn.'+k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
   set(k,v){try{localStorage.setItem('dbn.'+k,JSON.stringify(v));}catch(e){/* storage unavailable */}}};
 function status(text,kind=''){const el=$('status');el.textContent=text;el.className='status'+(kind?' '+kind:'');}
-function settingsStatus(text,failed=false){$('settings-status').textContent=text;$('settings-status').className='status'+(failed?' error':'');}
+let toastTimer=null;
+function settingsStatus(text,failed=false){
+  const el=$('settings-status');el.textContent=text;el.className='status toast'+(failed?' error':' ok');el.hidden=!text;
+  clearTimeout(toastTimer);if(!failed&&text)toastTimer=setTimeout(()=>{el.hidden=true;},4000);
+}
+function flash(id,text='Saved ✓'){
+  const b=$(id);if(!b)return;const original=b.dataset.label||b.textContent;b.dataset.label=original;
+  b.textContent=text;b.classList.add('done');clearTimeout(b._t);b._t=setTimeout(()=>{b.textContent=original;b.classList.remove('done');},2000);
+}
 function banner(text,action,handler,bad=false){
   $('banner').hidden=!text;$('banner').classList.toggle('bad',bad);$('banner-text').textContent=text||'';
   $('banner-action').hidden=!action;$('banner-action').textContent=action||'';$('banner-action').onclick=handler||null;
@@ -28,6 +36,7 @@ function errorText(error){return error.message+(error.detail?'\n'+error.detail:'
 function modelName(id){return (Claude.MODELS.find(m=>m[0]===id)||[id,id])[1].split(' — ')[0];}
 function connection(){
   const s=state.store.settings(),ok=!!state.store.apiKey();
+  if(ok&&/Add your Claude API key/.test($('banner-text').textContent))banner('');
   $('connection').classList.toggle('ok',ok);$('connection').classList.toggle('bad',!ok);
   $('connection-label').textContent=ok?modelName(s.model).replace('Claude ',''):'Add API key';
   $('settings-connection').textContent=ok?'Connected with your Claude API key · '+modelName(s.model)+'.':'Not connected yet. Paste your Claude API key below.';
@@ -82,7 +91,7 @@ async function saveProfile(event){
   ['name','purpose','guidance','greeting','signoff','avoid','signature'].forEach(k=>data[k]=$('pf-'+k).value);
   ['formality','warmth','directness'].forEach(k=>data[k]=Number($('pf-'+k).value));
   data.length=$('pf-length').value;data.format=$('pf-format').value;
-  try{const r=await state.store.saveProfile(data);state.editing=r.saved.id;loadProfiles();connection();settingsStatus('Profile saved.');}
+  try{const r=await state.store.saveProfile(data);state.editing=r.saved.id;loadProfiles();connection();flash('pf-save');settingsStatus('Profile "'+r.saved.name+'" saved.');}
   catch(error){settingsStatus(error.message,true);}
 }
 
@@ -275,7 +284,7 @@ async function saveKey(){
     const info=await Claude.testKey(key,model);
     if(typed)await state.store.setApiKey(typed);
     await state.store.saveSettings({model});
-    connection();settingsStatus('Connected. '+info.name+' is ready.');
+    connection();flash('save-key','Connected ✓');settingsStatus('Connected. '+info.name+' is ready.');
   }catch(error){settingsStatus(errorText(error),true);}
 }
 
@@ -337,7 +346,7 @@ function wire(){
   $('show-key').addEventListener('click',()=>{const k=$('api-key');k.type=k.type==='password'?'text':'password';$('show-key').textContent=k.type==='password'?'Show':'Hide';});
   $('save-key').addEventListener('click',saveKey);
   $('remove-key').addEventListener('click',async()=>{try{await state.store.setApiKey('');connection();settingsStatus('Key removed from your mailbox settings.');}catch(error){settingsStatus(error.message,true);}});
-  $('save-me').addEventListener('click',async()=>{try{await state.store.saveSettings({name:$('me-name').value,role:$('me-role').value,organisation:$('me-org').value,signature:$('me-signature').value,style:$('me-style').value});connection();settingsStatus('Saved.');}catch(error){settingsStatus(error.message,true);}});
+  $('save-me').addEventListener('click',async()=>{try{await state.store.saveSettings({name:$('me-name').value,role:$('me-role').value,organisation:$('me-org').value,signature:$('me-signature').value,style:$('me-style').value});connection();flash('save-me');settingsStatus('Your details are saved.');}catch(error){settingsStatus(error.message,true);}});
   $('default-profile').addEventListener('change',async()=>{try{await state.store.saveSettings({default_profile:$('default-profile').value});settingsStatus('Default voice saved.');}catch(error){settingsStatus(error.message,true);}});
   $('security-guard').addEventListener('change',async()=>{try{await state.store.saveSettings({security_guard:$('security-guard').checked});settingsStatus('Saved.');}catch(error){settingsStatus(error.message,true);}renderReview();});
   $('edit-profile-pick').addEventListener('change',()=>editProfile($('edit-profile-pick').value));
@@ -350,7 +359,7 @@ function wire(){
     $('pf-examples').append(exampleBox(text.slice(0,2500)));settingsStatus('Added. Remove any quoted older messages, then Save profile.');
   });
   $('pf-delete').addEventListener('click',async()=>{if(!state.editing)return;try{await state.store.deleteProfile(state.editing);state.editing=null;loadProfiles();connection();settingsStatus('Profile deleted.');}catch(error){settingsStatus(error.message,true);}});
-  $('save-template').addEventListener('click',async()=>{try{await state.store.saveTemplate($('template-name').value,$('template-body').value);$('template-name').value=$('template-body').value='';loadTemplates();connection();settingsStatus('Template saved.');}catch(error){settingsStatus(error.message,true);}});
+  $('save-template').addEventListener('click',async()=>{try{await state.store.saveTemplate($('template-name').value,$('template-body').value);$('template-name').value=$('template-body').value='';loadTemplates();connection();flash('save-template');settingsStatus('Template saved.');}catch(error){settingsStatus(error.message,true);}});
   setSeg('length',prefs.get('length','Standard'));
 }
 
