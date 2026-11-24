@@ -79,6 +79,14 @@ const message=obj=>({id:'msg_1',type:'message',role:'assistant',model:'claude-op
     assert.equal(test.headers['anthropic-dangerous-direct-browser-access'],'true');
     assert.equal(await page.evaluate(()=>window.__bag.apiKey),key);
     assert.equal(await page.textContent('#connection-label'),'Opus 5.5');
+    assert.equal(await page.isVisible('#banner'),false,'welcome banner cleared once connected');
+    // Saving "About you" confirms visibly: button flashes and a toast stays in view
+    await page.fill('#me-name','Sam Fictional');await page.click('#save-me');
+    assert.equal(await page.textContent('#save-me'),'Saved ✓');
+    assert.match(await page.textContent('#settings-status'),/details are saved/);
+    const box=await page.$eval('#settings-status',e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,h:innerHeight};});
+    assert.ok(box.bottom<=box.h&&box.top>=0,'save confirmation is inside the visible area');
+    assert.equal(await page.evaluate(()=>window.__bag.settings.name),'Sam Fictional');
     await shot('addin-2-settings');
     await page.click('#close-settings');
 

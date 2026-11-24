@@ -27,7 +27,7 @@ jobs:
       - name: Browser tests (v2 pane and hosted add-in)
         shell: pwsh
         run: |
-          npm install --no-save playwright@1.49.1
+          npm install --no-save playwright@1.63.0
           npx playwright install chromium
           node tests/test_addin.js
           node tests/test_addin_browser.js
