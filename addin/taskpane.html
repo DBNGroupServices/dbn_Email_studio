@@ -4,146 +4,124 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>DBN Email Studio</title>
+<title>dbn Email Studio</title>
 <link rel="icon" href="icons/email-blue-v2-32.png">
-<link rel="stylesheet" href="taskpane.css?v=3.0.2">
-<script src="boot-check.js?v=3.0.2"></script>
+<link rel="stylesheet" href="taskpane.css?v=3.1.0">
+<script src="boot-check.js?v=3.1.0"></script>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-<script src="vendor/anthropic-sdk.js?v=3.0.2" defer></script>
-<script src="draft-tools.js?v=3.0.2" defer></script>
-<script src="office-client.js?v=3.0.2" defer></script>
-<script src="store.js?v=3.0.2" defer></script>
-<script src="claude-client.js?v=3.0.2" defer></script>
-<script src="taskpane.js?v=3.0.2" defer></script>
+<script src="vendor/anthropic-sdk.js?v=3.1.0" defer></script>
+<script src="draft-tools.js?v=3.1.0" defer></script>
+<script src="office-client.js?v=3.1.0" defer></script>
+<script src="store.js?v=3.1.0" defer></script>
+<script src="claude-client.js?v=3.1.0" defer></script>
+<script src="dictation.js?v=3.1.0" defer></script>
+<script src="taskpane.js?v=3.1.0" defer></script>
 </head>
 <body>
 <div class="app">
-  <header class="top">
-    <img src="icons/email-blue-v2-64.png" alt="" width="28" height="28">
-    <div class="brand"><h1>Email Studio</h1><span id="version" class="muted"></span></div>
-    <button id="connection" class="pill" type="button" title="AI connection"><span class="dot"></span><span id="connection-label">Connecting…</span></button>
-    <button id="open-settings" class="icon-btn" type="button" aria-label="Settings and voice profiles" title="Settings and voice profiles">
-      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 6.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4Zm7 4.1-1.6.6a5.6 5.6 0 0 1-.5 1.2l.7 1.6-1.6 1.6-1.6-.7c-.4.2-.8.4-1.2.5l-.6 1.6H8.4l-.6-1.6a5.6 5.6 0 0 1-1.2-.5l-1.6.7-1.6-1.6.7-1.6a5.6 5.6 0 0 1-.5-1.2L2 10.9V9.1l1.6-.6c.1-.4.3-.8.5-1.2l-.7-1.6 1.6-1.6 1.6.7c.4-.2.8-.4 1.2-.5L8.4 2.7h2.2l.6 1.6c.4.1.8.3 1.2.5l1.6-.7 1.6 1.6-.7 1.6c.2.4.4.8.5 1.2l1.6.6v1.8Z"/></svg>
-    </button>
+  <header class="band">
+    <div class="bar">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></div>
+      <div class="brand"><span class="dbn">dbn</span> Email Studio</div>
+      <button id="connection" class="conn" type="button" title="AI connection"><span class="dot"></span><span id="connection-label">Connecting…</span></button>
+      <button id="open-settings" class="band-btn" type="button" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>
+      </button>
+    </div>
+    <div class="ctx">
+      <div id="email-line" class="ctx-line">Waiting for Outlook…</div>
+      <div id="email-subject" class="subject"></div>
+    </div>
+    <div id="summary" class="summary" hidden></div>
   </header>
 
   <div id="banner" class="banner" hidden role="status"><span id="banner-text"></span><button id="banner-action" type="button" class="link"></button></div>
 
-  <section class="email-card" aria-label="Current email">
-    <div class="email-head">
-      <div class="avatar" id="avatar" aria-hidden="true">?</div>
-      <div class="email-meta">
-        <strong id="email-from">No email loaded</strong>
-        <span id="email-subject" class="muted"></span>
+  <!-- 1. Ask -->
+  <main id="view-compose" class="body">
+    <div id="suggest-label" class="label">SUGGESTED REPLIES</div>
+    <div id="suggestions" class="suggestions" aria-live="polite"></div>
+
+    <div class="grow"></div>
+
+    <div class="voice-row">
+      <label for="profile">Voice</label>
+      <select id="profile" class="chip-select"></select>
+      <span id="voice-note" class="muted"></span>
+    </div>
+
+    <div class="command">
+      <label for="points" id="points-label">Or say what you want</label>
+      <textarea id="points" rows="3" placeholder="Type, or tap the mic and speak…"></textarea>
+      <div class="command-row">
+        <button id="mic" class="mic" type="button" aria-label="Start dictation" aria-pressed="false" title="Dictate">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+        </button>
+        <span id="mic-hint" class="hint">Tap the mic to dictate · Ctrl+Enter</span>
+        <button id="generate" class="primary" type="button">Write reply</button>
       </div>
-      <button id="read-email" class="icon-btn" type="button" aria-label="Reload current email" title="Reload current email">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.7 6.2A6.5 6.5 0 1 0 16.5 11h-1.8a4.8 4.8 0 1 1-1.3-4.6L11 8.8h6V2.8l-1.3 3.4Z"/></svg>
-      </button>
     </div>
-    <p id="host-status" class="muted small" role="status">Waiting for Outlook…</p>
-    <details id="context-details"><summary>Email text the AI will read</summary>
-      <textarea id="source" rows="6" aria-label="Email context" placeholder="The current email appears here. You can also paste text."></textarea>
-    </details>
-  </section>
-
-  <nav class="tabs" role="tablist" aria-label="Mode">
-    <button role="tab" type="button" class="tab" data-mode="reply" aria-selected="true">Reply</button>
-    <button role="tab" type="button" class="tab" data-mode="write" aria-selected="false">Write / Rewrite</button>
-    <button role="tab" type="button" class="tab" data-mode="tools" aria-selected="false">Tools</button>
-  </nav>
-
-  <section id="compose-panel" class="panel">
-    <div id="intents" class="chips" aria-label="Quick replies"></div>
-
-    <div id="write-kind" class="seg" hidden>
-      <button type="button" data-kind="compose" class="on">New from notes</button>
-      <button type="button" data-kind="rewrite">Rewrite my draft</button>
-    </div>
-
-    <div id="tool-kind" hidden>
-      <label for="action">Tool</label>
-      <select id="action">
-        <option value="summary">Summarise email or thread</option>
-        <option value="actions">Extract action items</option>
-        <option value="proofread">Proofread and improve clarity</option>
-        <option value="translate">Translate</option>
-        <option value="followup">Draft a follow-up</option>
-        <option value="meeting-notes">Structure supplied meeting notes</option>
-      </select>
-      <div id="language-row" hidden><label for="language">Translate into</label><input id="language" maxlength="80" value="English"></div>
-    </div>
-
-    <label for="points" id="points-label">What should the reply say?</label>
-    <textarea id="points" rows="3" placeholder="Dot points or a quick instruction — e.g. confirm Friday 7am, lift 3 isolated, contractor to sign in at Level 1 security desk"></textarea>
-
-    <div class="grid2">
-      <div><label for="profile">Voice</label><select id="profile"></select></div>
-      <div><label for="tone">Tone</label><select id="tone"></select></div>
-    </div>
-    <div class="seg" id="length" role="radiogroup" aria-label="Length">
-      <button type="button" data-value="Brief">Brief</button>
-      <button type="button" data-value="Standard" class="on">Standard</button>
-      <button type="button" data-value="Detailed">Detailed</button>
-    </div>
-
-    <details id="more-controls"><summary>More controls</summary>
-      <div class="slider"><label for="formality">Formality</label><input id="formality" type="range" min="1" max="5" step="1"><output for="formality"></output></div>
-      <div class="slider"><label for="warmth">Warmth</label><input id="warmth" type="range" min="1" max="5" step="1"><output for="warmth"></output></div>
-      <div class="slider"><label for="directness">Directness</label><input id="directness" type="range" min="1" max="5" step="1"><output for="directness"></output></div>
-      <div class="grid2">
-        <div><label for="format">Layout</label><select id="format"><option>Paragraphs</option><option>Bullet points</option></select></div>
-        <div><label for="variants">Options to compare</label><select id="variants"><option value="1">1 draft</option><option value="2">2 drafts</option><option value="3">3 drafts</option></select></div>
-      </div>
-      <label class="check"><input type="checkbox" id="reply-all"> Reply all (write for everyone copied)</label>
-      <label class="check"><input type="checkbox" id="include-attachments"> Let the AI read this email's attachments</label>
-      <label for="uploads">Add screenshots or files</label>
-      <input id="uploads" type="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.txt,.csv,.eml,.html,.htm">
-      <p class="muted small">Images, PDF, TXT, HTML, CSV or EML · up to 10 files, 10 MB each. Sent to Claude only when you press Generate.</p>
-      <div class="grid2">
-        <div><label for="templates">Insert a template</label><select id="templates"><option value="">Choose…</option></select></div>
-        <div class="end"><button id="use-template" type="button" class="secondary">Add to notes</button></div>
-      </div>
-    </details>
-
-    <button id="generate" class="primary wide" type="button">Generate reply <kbd>Ctrl+Enter</kbd></button>
     <p id="status" class="status" role="status" aria-live="polite"></p>
-  </section>
 
-  <section id="result" class="panel result" hidden aria-label="Result">
-    <div class="result-head">
-      <div id="variant-tabs" class="chips tight" hidden></div>
-      <div class="versions"><button id="ver-back" type="button" class="icon-btn small" aria-label="Previous version">‹</button><span id="ver-label" class="muted small"></span><button id="ver-forward" type="button" class="icon-btn small" aria-label="Next version">›</button></div>
+    <div class="more">
+      <span class="muted">More:</span>
+      <button type="button" class="link" data-tool="summary">Summarise</button>
+      <button type="button" class="link" data-tool="actions">Action items</button>
+      <button type="button" class="link" data-tool="proofread">Proofread</button>
+      <button type="button" class="link" data-tool="translate" title="Translates the email into the language typed in the box (English if empty)">Translate</button>
+      <label class="link file-link" for="uploads">Attach file</label>
+      <input id="uploads" type="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.txt,.csv,.eml,.html,.htm" class="sr-only">
+      <select id="templates" class="mini-select" aria-label="Insert a template"><option value="">Template…</option></select>
     </div>
-    <label for="draft-subject">Subject</label>
-    <input id="draft-subject">
-    <label for="draft-body">Draft — edit freely</label>
-    <textarea id="draft-body" rows="12"></textarea>
-    <ul id="review" class="review" aria-label="Before you send"></ul>
+    <p id="files-note" class="muted small" hidden></p>
+    <textarea id="source" class="sr-only" aria-hidden="true" tabindex="-1"></textarea>
+  </main>
 
-    <div class="chips refine" aria-label="Refine">
+  <!-- 2. Draft -->
+  <main id="view-draft" class="body" hidden>
+    <div class="draft-bar">
+      <button id="back" type="button" class="icon-btn" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+      <div id="draft-title" class="draft-title">Your reply</div>
+      <div class="versions"><button id="ver-back" type="button" class="icon-btn sm" aria-label="Previous version">‹</button><span id="ver-label" class="muted small"></span><button id="ver-forward" type="button" class="icon-btn sm" aria-label="Next version">›</button></div>
+    </div>
+    <div id="variant-tabs" class="chips" hidden></div>
+    <div id="subject-row" hidden><label for="draft-subject">Subject</label><input id="draft-subject"></div>
+    <label for="draft-body" class="sr-only">Draft</label>
+    <textarea id="draft-body" class="draft"></textarea>
+
+    <div id="review-line" class="review-line" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg>
+      <span id="review-text"></span>
+      <button id="review-toggle" type="button" class="link">Show</button>
+    </div>
+    <ul id="review" class="review" hidden></ul>
+
+    <div class="chips refine">
       <button type="button" data-refine="Make it shorter and tighter.">Shorter</button>
-      <button type="button" data-refine="Make it a little more detailed and complete.">Longer</button>
-      <button type="button" data-refine="Make it warmer and friendlier, still professional.">Warmer</button>
-      <button type="button" data-refine="Make it firmer and more direct, still polite.">Firmer</button>
       <button type="button" data-refine="Make it more formal.">More formal</button>
-      <button type="button" data-refine="Use simpler, plainer words.">Simpler</button>
-      <button type="button" data-refine="Use short bullet points for the key details.">Bullets</button>
-      <button type="button" data-refine="Fix grammar, spelling and flow only; keep wording otherwise.">Polish</button>
+      <button type="button" data-refine="Make it warmer and friendlier, still professional.">Friendlier</button>
+      <button type="button" data-refine="Write it again a different way, keeping the same facts.">Try again</button>
     </div>
-    <div class="refine-row"><input id="refine-text" placeholder="Or tell it what to change…" maxlength="600"><button id="refine" type="button" class="secondary">Apply</button></div>
+    <div class="change">
+      <label for="refine-text" class="sr-only">Change something</label>
+      <input id="refine-text" placeholder="Change something… e.g. suggest Tuesday 10am">
+      <button id="mic2" class="mic sm" type="button" aria-label="Start dictation" aria-pressed="false" title="Dictate"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button>
+      <button id="refine" type="button" class="go" aria-label="Apply change"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+    </div>
+    <p id="draft-status" class="status" role="status" aria-live="polite"></p>
 
     <div class="actions">
-      <button id="apply" type="button" class="primary">Open reply</button>
+      <button id="apply" type="button" class="primary">Insert reply</button>
       <button id="apply-all" type="button" class="secondary" hidden>Reply all</button>
       <button id="copy" type="button" class="secondary">Copy</button>
     </div>
-    <p id="apply-help" class="muted small">Opens in Outlook for you to review. Nothing is sent automatically.</p>
-  </section>
+    <p id="apply-help" class="muted small center">Opens in Outlook for you to review. Nothing is sent automatically.</p>
+  </main>
 
-  <footer class="foot muted small">Powered by Claude · <a href="help.html" target="_blank" rel="noopener noreferrer">Help</a> · <button id="example" type="button" class="link small">Try an example</button></footer>
+  <footer class="foot muted small">Powered by Claude · <a href="help.html" target="_blank" rel="noopener noreferrer">Help</a> · <button id="example" type="button" class="link">Try an example</button></footer>
 </div>
 
-<!-- Settings drawer -->
+<!-- Settings -->
 <div id="drawer" class="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="drawer-title">
   <div class="drawer-inner">
     <header class="drawer-head"><h2 id="drawer-title">Settings</h2><button id="close-settings" type="button" class="icon-btn" aria-label="Close settings">✕</button></header>
@@ -152,10 +130,11 @@
       <h3>AI connection</h3>
       <p id="settings-connection" class="small"></p>
       <label for="api-key">Claude API key</label>
-      <div class="refine-row"><input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…"><button id="show-key" type="button" class="secondary" aria-label="Show or hide key">Show</button></div>
+      <div class="row"><input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…"><button id="show-key" type="button" class="secondary">Show</button></div>
       <label for="model">Model</label><select id="model"></select>
       <div class="row"><button id="save-key" type="button" class="primary">Save &amp; test</button><button id="remove-key" type="button" class="danger">Remove key</button></div>
-      <p class="muted small">Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">console.anthropic.com</a> (Billing must have credit). The key is saved in your Outlook mailbox's add-in settings, used only by this add-in, and sent only to api.anthropic.com.</p>
+      <label class="check"><input type="checkbox" id="auto-suggest"> Suggest replies automatically when I open an email</label>
+      <p class="muted small">Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">console.anthropic.com</a> (Billing must have credit). The key is saved in your Outlook mailbox's add-in settings and sent only to api.anthropic.com.</p>
     </section>
 
     <section class="card">
@@ -168,15 +147,15 @@
     </section>
 
     <section class="card">
-      <h3>Voice profiles</h3>
-      <p class="muted small">How you write for different audiences. The AI matches tone, greeting, sign-off and your example emails.</p>
+      <h3>Voices</h3>
+      <p class="muted small">How you write for different people. Email Studio picks one automatically from the sender (tenant, contractor, executive, team); you can change it on any email.</p>
       <label for="default-profile">Default voice</label>
       <select id="default-profile"></select>
-      <div class="row"><select id="edit-profile-pick" aria-label="Profile to edit"></select><button id="new-profile" type="button" class="secondary">New</button></div>
+      <div class="row"><select id="edit-profile-pick" aria-label="Voice to edit"></select><button id="new-profile" type="button" class="secondary">New</button></div>
       <form id="profile-form" class="profile-form" autocomplete="off">
         <label for="pf-name">Name</label><input id="pf-name" maxlength="80" required>
         <label for="pf-purpose">Used for</label><input id="pf-purpose" maxlength="300" placeholder="e.g. Tenant enquiries, contractor instructions">
-        <label for="pf-guidance">How to write</label><textarea id="pf-guidance" rows="3" maxlength="2000" placeholder="e.g. Lead with the answer. Short paragraphs. Australian English."></textarea>
+        <label for="pf-guidance">How to write</label><textarea id="pf-guidance" rows="3" maxlength="2000" placeholder="e.g. Lead with the answer. Short paragraphs."></textarea>
         <div class="grid2"><div><label for="pf-greeting">Greeting</label><input id="pf-greeting" maxlength="200" placeholder="Hi {first name},"></div><div><label for="pf-signoff">Sign-off</label><input id="pf-signoff" maxlength="200" placeholder="Kind regards,"></div></div>
         <div class="slider"><label for="pf-formality">Formality</label><input id="pf-formality" type="range" min="1" max="5"><output for="pf-formality"></output></div>
         <div class="slider"><label for="pf-warmth">Warmth</label><input id="pf-warmth" type="range" min="1" max="5"><output for="pf-warmth"></output></div>
@@ -185,16 +164,17 @@
         <label for="pf-avoid">Avoid</label><input id="pf-avoid" maxlength="1000" placeholder="e.g. jargon, exclamation marks">
         <label for="pf-signature">Signature for this voice (optional)</label><textarea id="pf-signature" rows="3" maxlength="1000"></textarea>
         <label class="check"><input type="checkbox" id="pf-include-signature"> Add a signature in the draft (untick if Outlook adds yours)</label>
-        <label>Example emails you wrote <span class="muted">(up to 3 — teaches your style)</span></label>
+        <label>Example emails you wrote <span class="muted">(up to 3, teaches your style)</span></label>
         <div id="pf-examples"></div>
-        <div class="row"><button id="pf-add-example" type="button" class="link small">+ Add example</button><button id="pf-from-email" type="button" class="link small">+ Use the open email as an example</button></div>
-        <div class="row end"><button id="pf-delete" type="button" class="danger">Delete</button><button id="pf-save" type="submit" class="primary">Save profile</button></div>
+        <div class="row"><button id="pf-add-example" type="button" class="link">+ Add example</button><button id="pf-from-email" type="button" class="link">+ Use the open email</button></div>
+        <div class="row end"><button id="pf-delete" type="button" class="danger">Delete</button><button id="pf-save" type="submit" class="primary">Save voice</button></div>
       </form>
     </section>
 
     <section class="card">
       <h3>Safety</h3>
-      <label class="check"><input type="checkbox" id="security-guard"> Security disclosure guard — keep codes, PINs, passwords, card numbers and coverage details out of drafts</label>
+      <label class="check"><input type="checkbox" id="security-guard"> Security disclosure guard: keep codes, PINs, passwords, card numbers and coverage details out of drafts</label>
+      <label class="check"><input type="checkbox" id="include-attachments"> Let Claude read the open email's attachments</label>
     </section>
 
     <section class="card">

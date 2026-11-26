@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.1.0 — 26 November 2026 — simpler "one box" design
+
+- **New layout (Option A, Rialto Black & Blue).** A black header band shows who you're replying to, the subject and a one-line summary. Below it are three **suggested replies written for that email**, then one box to type (or say) what you want. The tabs, sub-modes and Tone/Length controls are gone from the main screen.
+- **Suggested replies** come from a quick Claude call when you open an email (low effort, cached per email), which also identifies the sender (tenant, contractor, supplier, executive, team). Turn it off under Settings → AI connection; without it, the pane shows four standard quick replies.
+- **The voice is picked automatically from the sender** and can be changed with the Voice chip.
+- **Dictation.** A mic button on the main box and on the "change something" box. It uses the browser's speech recognition where Outlook allows it; otherwise it explains Windows dictation (Win + H).
+- **Reply vs new email is automatic.** Read pane → reply. Compose window → insert, or rewrite the selected text. No email → new email.
+- **Simpler draft screen.** Warnings become one line (red only when something must be fixed). Shorter / More formal / Friendlier / Try again chips, a change box, then Insert reply, Reply all or Copy.
+- Tools (Summarise, Action items, Proofread, Translate), attaching files and templates are now small links under the box.
+- Renamed **dbn Email Studio** (manifest 3.1.0.0). Re-upload the manifest to update the ribbon name; the pane updates without it.
+- Built with the system font and CSS only, so there is nothing extra to download.
+
 ## 3.0.0 — 25 November 2026 — no desktop app
 
 - **The add-in no longer needs DBN Email Studio running.** It is a static site on GitHub Pages (`addin/`), so Outlook loads the pane directly. The "Sorry, we can't load the add-in" failure caused by the local engine no longer applies.
