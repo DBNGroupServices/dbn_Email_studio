@@ -6,7 +6,7 @@
 ((root)=>{
   'use strict';
   const LIMIT=31*1024;
-  const DEFAULT_SETTINGS={model:'claude-opus-5-5',name:'',role:'',organisation:'',signature:'',default_profile:'builtin-professional',security_guard:true,
+  const DEFAULT_SETTINGS={model:'claude-opus-5-5',name:'',role:'',organisation:'',signature:'',default_profile:'builtin-professional',security_guard:true,auto_suggest:true,include_attachments:false,
     style:'Use Australian English. Be concise, professional and natural. Preserve names, dates, times, amounts, locations and instructions. Avoid unnecessary apologies, repetition and corporate jargon.'};
   const DEFAULT_PROFILES=[
     {id:'builtin-professional',name:'Professional (default)',purpose:'Everyday business correspondence.',guidance:'Clear, courteous and efficient. Lead with the answer or next step. Short paragraphs.',greeting:'Hi {first name},',signoff:'Kind regards,',formality:3,warmth:3,directness:4,length:'Standard',format:'Paragraphs',avoid:'Corporate jargon, over-apologising, exclamation marks.'},
@@ -73,6 +73,7 @@
         if(typeof next.signature!=='string'||next.signature.length>1000)throw new Error('Signature must be under 1,000 characters.');
         if(typeof next.style!=='string'||next.style.length>2000)throw new Error('Writing style must be under 2,000 characters.');
         if(typeof next.security_guard!=='boolean')throw new Error('Security guard must be on or off.');
+        for(const k of ['auto_suggest','include_attachments'])if(typeof next[k]!=='boolean')throw new Error('That setting must be on or off.');
         await commit('settings',next);return next;
       },
       profiles(){return read('profiles',null)||DEFAULT_PROFILES.map(p=>({...p}));},
