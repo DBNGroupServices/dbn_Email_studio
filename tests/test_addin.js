@@ -56,8 +56,9 @@ assert.throws(()=>C.readResult(msg('not json')),/unreadable/);
 assert.throws(()=>C.readResult(msg(JSON.stringify({subject:'S',body:'  ',checks:[]}))),/unreadable/);
 
 // Suggestions: validated, capped at 3, unknown audience -> other
-const sg=C.readSuggestions(msg(JSON.stringify({summary:'S',audience:'alien',suggestions:[1,2,3,4].map(i=>({title:'T'+i,hint:'h',instruction:'i'}))})));
-assert.equal(sg.suggestions.length,3);assert.equal(sg.audience,'other');
+const sg=C.readSuggestions(msg(JSON.stringify({summary:'S',audience:'alien',priority:'Urgent!',need:'A fix',mood:'Calm',suggestions:[1,2,3,4].map(i=>({title:'T'+i,tag:'best fit',hint:'h',instruction:'i',preview:{formal:'F',balanced:'B',friendly:''}}))})));
+assert.equal(sg.suggestions.length,3);assert.equal(sg.audience,'other');assert.equal(sg.priority,'Normal');assert.equal(sg.need,'A fix');
+assert.equal(sg.suggestions[0].tag,'BEST FIT');assert.deepEqual(sg.suggestions[0].preview,{formal:'F',balanced:'B',friendly:'B'});
 assert.throws(()=>C.readSuggestions(msg(JSON.stringify({summary:'S',audience:'team',suggestions:[]}))),/suggestions/);
 assert.equal(C.SUGGEST_SCHEMA.additionalProperties,false);
 // Errors -> plain-English messages
@@ -95,9 +96,10 @@ assert.match(C.friendlyError(new InternalServerError(529,'overloaded'),SDK).mess
   await st.setApiKey('');assert.equal(st.apiKey(),'');
   // Manifest points at HTTPS hosting with the same add-in ID as before
   const manifest=fs.readFileSync(path.join(ROOT,'addin','manifest.xml'),'utf8');
-  assert.match(manifest,/dbn Email Studio/);assert.match(manifest,/<Id>7877fe62-01f2-4af8-b073-dfa805099a63<\/Id>/);assert.doesNotMatch(manifest,/localhost/);
+  assert.match(manifest,/Bulwark HQ Assistant/);assert.match(manifest,/icons\/assistant-80\.png/);assert.match(manifest,/<Id>7877fe62-01f2-4af8-b073-dfa805099a63<\/Id>/);assert.doesNotMatch(manifest,/localhost/);
   assert.match(manifest,/https:\/\/dbngroupservices\.github\.io\/dbn_Email_studio\/taskpane\.html/);assert.match(manifest,/<Permissions>ReadWriteItem<\/Permissions>/);
   const html=fs.readFileSync(path.join(ROOT,'addin','taskpane.html'),'utf8');
+  for(const f of ['fonts/inter-latin-400-normal.woff2','fonts/space-grotesk-latin-700-normal.woff2','icons/assistant-16.png','brand/bulwark-hq.svg'])assert.ok(fs.existsSync(path.join(ROOT,'addin',f)),'missing '+f);
   for(const src of html.match(/src="([^"]+)"/g).map(s=>s.slice(5,-1).split('?')[0]).filter(s=>!s.startsWith('https://')))assert.ok(fs.existsSync(path.join(ROOT,'addin',src)),'missing '+src);
   assert.ok(html.indexOf('boot-check.js')<html.indexOf('office.js'),'watchdog loads before Office.js');
   console.log('Hosted add-in: prompts, files, responses, errors, mailbox storage limits and manifest passed.');

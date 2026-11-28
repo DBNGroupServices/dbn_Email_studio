@@ -1,6 +1,6 @@
-# DBN Email Studio
+# Bulwark HQ Assistant
 
-**Version 3.0.** DBN Email Studio is an Outlook Classic add-in that reads the email you have open and drafts a reply in your voice and tone with **Claude**. **No desktop app is needed**: the add-in is hosted on GitHub Pages and works whenever Outlook is open. Nothing is ever sent automatically.
+**Version 3.2** (formerly DBN Email Studio). Bulwark HQ Assistant is an Outlook Classic add-in that reads the email you have open and drafts a reply in your voice and tone with **Claude**. **No desktop app is needed**: the add-in is hosted on GitHub Pages and works whenever Outlook is open. Nothing is ever sent automatically.
 
 - **Set up and use:** [addin/README.md](addin/README.md)
 - **What changed:** [CHANGELOG.md](CHANGELOG.md)

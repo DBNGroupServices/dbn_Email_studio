@@ -4,67 +4,75 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>dbn Email Studio</title>
-<link rel="icon" href="icons/email-blue-v2-32.png">
-<link rel="stylesheet" href="taskpane.css?v=3.1.0">
-<script src="boot-check.js?v=3.1.0"></script>
+<title>Bulwark HQ Assistant</title>
+<link rel="icon" href="icons/assistant-32.png">
+<link rel="stylesheet" href="taskpane.css?v=3.2.0">
+<script src="boot-check.js?v=3.2.0"></script>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-<script src="vendor/anthropic-sdk.js?v=3.1.0" defer></script>
-<script src="draft-tools.js?v=3.1.0" defer></script>
-<script src="office-client.js?v=3.1.0" defer></script>
-<script src="store.js?v=3.1.0" defer></script>
-<script src="claude-client.js?v=3.1.0" defer></script>
-<script src="dictation.js?v=3.1.0" defer></script>
-<script src="taskpane.js?v=3.1.0" defer></script>
+<script src="vendor/anthropic-sdk.js?v=3.2.0" defer></script>
+<script src="draft-tools.js?v=3.2.0" defer></script>
+<script src="office-client.js?v=3.2.0" defer></script>
+<script src="store.js?v=3.2.0" defer></script>
+<script src="claude-client.js?v=3.2.0" defer></script>
+<script src="dictation.js?v=3.2.0" defer></script>
+<script src="taskpane.js?v=3.2.0" defer></script>
 </head>
 <body>
 <div class="app">
+  <div class="radar" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
   <header class="band">
     <div class="bar">
-      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></div>
-      <div class="brand"><span class="dbn">dbn</span> Email Studio</div>
+      <div class="brand" role="img" aria-label="Bulwark HQ Assistant"><img src="brand/bulwark-hq.svg" alt="" height="19"><span class="rule"></span><span class="assistant">Assistant</span></div>
       <button id="connection" class="conn" type="button" title="AI connection"><span class="dot"></span><span id="connection-label">Connecting…</span></button>
       <button id="open-settings" class="band-btn" type="button" aria-label="Settings" title="Settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>
       </button>
     </div>
     <div class="ctx">
-      <div id="email-line" class="ctx-line">Waiting for Outlook…</div>
+      <div class="eyebrow"><span class="lead"></span><span id="email-line">Waiting for Outlook…</span></div>
       <div id="email-subject" class="subject"></div>
     </div>
-    <div id="summary" class="summary" hidden></div>
+    <div id="insights" class="insights" hidden>
+      <div><b id="in-priority"></b><span>PRIORITY</span></div>
+      <div><b id="in-need"></b><span>THEY NEED</span></div>
+      <div><b id="in-mood"></b><span>MOOD</span></div>
+    </div>
+    <p id="summary" class="summary" hidden></p>
   </header>
 
   <div id="banner" class="banner" hidden role="status"><span id="banner-text"></span><button id="banner-action" type="button" class="link"></button></div>
 
   <!-- 1. Ask -->
   <main id="view-compose" class="body">
-    <div id="suggest-label" class="label">SUGGESTED REPLIES</div>
+    <div id="suggest-label" class="eyebrow"><span class="lead"></span>BEST REPLIES</div>
     <div id="suggestions" class="suggestions" aria-live="polite"></div>
 
-    <div class="grow"></div>
-
-    <div class="voice-row">
-      <label for="profile">Voice</label>
-      <select id="profile" class="chip-select"></select>
-      <span id="voice-note" class="muted"></span>
-    </div>
+    <section class="tone-card" aria-label="Tone">
+      <div class="tone-head"><span class="mono">TONE</span><strong id="tone-label">Balanced</strong></div>
+      <div id="tone" class="tone-steps" role="radiogroup" aria-label="Tone"></div>
+      <div class="tone-ends mono"><span>FORMAL</span><span>FRIENDLY</span></div>
+      <div id="preview" class="preview" hidden><strong id="preview-greeting"></strong><span id="preview-text"></span></div>
+      <div class="voice-row">
+        <label for="profile" class="mono">VOICE</label>
+        <select id="profile" class="chip-select"></select>
+        <span id="voice-note" class="muted"></span>
+      </div>
+    </section>
 
     <div class="command">
-      <label for="points" id="points-label">Or say what you want</label>
-      <textarea id="points" rows="3" placeholder="Type, or tap the mic and speak…"></textarea>
-      <div class="command-row">
-        <button id="mic" class="mic" type="button" aria-label="Start dictation" aria-pressed="false" title="Dictate">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
-        </button>
-        <span id="mic-hint" class="hint">Tap the mic to dictate · Ctrl+Enter</span>
-        <button id="generate" class="primary" type="button">Write reply</button>
-      </div>
+      <label for="points" id="points-label" class="sr-only">Add a detail (optional)</label>
+      <textarea id="points" rows="2" placeholder="Add a detail, or say exactly what you want…"></textarea>
     </div>
+    <div class="go-row">
+      <button id="mic" class="mic" type="button" aria-label="Start dictation" aria-pressed="false" title="Dictate">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+      </button>
+      <button id="generate" class="primary" type="button">Write full reply</button>
+    </div>
+    <span id="mic-hint" class="sr-only">Tap the mic to dictate</span>
     <p id="status" class="status" role="status" aria-live="polite"></p>
 
     <div class="more">
-      <span class="muted">More:</span>
       <button type="button" class="link" data-tool="summary">Summarise</button>
       <button type="button" class="link" data-tool="actions">Action items</button>
       <button type="button" class="link" data-tool="proofread">Proofread</button>
@@ -75,6 +83,9 @@
     </div>
     <p id="files-note" class="muted small" hidden></p>
     <textarea id="source" class="sr-only" aria-hidden="true" tabindex="-1"></textarea>
+
+    <div class="grow"></div>
+    <div class="saved"><b id="saved-time">0m</b><span class="mono">SAVED THIS WEEK (EST.)</span><span id="saved-count" class="mono"></span></div>
   </main>
 
   <!-- 2. Draft -->
@@ -118,7 +129,7 @@
     <p id="apply-help" class="muted small center">Opens in Outlook for you to review. Nothing is sent automatically.</p>
   </main>
 
-  <footer class="foot muted small">Powered by Claude · <a href="help.html" target="_blank" rel="noopener noreferrer">Help</a> · <button id="example" type="button" class="link">Try an example</button></footer>
+  <footer class="foot muted small"><a href="help.html" target="_blank" rel="noopener noreferrer">Help</a> · <button id="example" type="button" class="link">Try an example</button></footer>
 </div>
 
 <!-- Settings -->
@@ -148,7 +159,7 @@
 
     <section class="card">
       <h3>Voices</h3>
-      <p class="muted small">How you write for different people. Email Studio picks one automatically from the sender (tenant, contractor, executive, team); you can change it on any email.</p>
+      <p class="muted small">How you write for different people. The Assistant picks one automatically from the sender (tenant, contractor, executive, team); you can change it on any email.</p>
       <label for="default-profile">Default voice</label>
       <select id="default-profile"></select>
       <div class="row"><select id="edit-profile-pick" aria-label="Voice to edit"></select><button id="new-profile" type="button" class="secondary">New</button></div>
