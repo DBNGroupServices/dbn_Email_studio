@@ -6,16 +6,18 @@
 <meta name="referrer" content="no-referrer">
 <title>Bulwark HQ Assistant</title>
 <link rel="icon" href="icons/assistant-32.png">
-<link rel="stylesheet" href="taskpane.css?v=3.2.0">
-<script src="boot-check.js?v=3.2.0"></script>
+<link rel="stylesheet" href="taskpane.css?v=3.3.0">
+<script src="boot-check.js?v=3.3.0"></script>
+<script src="config.js?v=3.3.0"></script>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-<script src="vendor/anthropic-sdk.js?v=3.2.0" defer></script>
-<script src="draft-tools.js?v=3.2.0" defer></script>
-<script src="office-client.js?v=3.2.0" defer></script>
-<script src="store.js?v=3.2.0" defer></script>
-<script src="claude-client.js?v=3.2.0" defer></script>
-<script src="dictation.js?v=3.2.0" defer></script>
-<script src="taskpane.js?v=3.2.0" defer></script>
+<script src="vendor/anthropic-sdk.js?v=3.3.0" defer></script>
+<script src="draft-tools.js?v=3.3.0" defer></script>
+<script src="office-client.js?v=3.3.0" defer></script>
+<script src="store.js?v=3.3.0" defer></script>
+<script src="claude-client.js?v=3.3.0" defer></script>
+<script src="service-client.js?v=3.3.0" defer></script>
+<script src="dictation.js?v=3.3.0" defer></script>
+<script src="taskpane.js?v=3.3.0" defer></script>
 </head>
 <body>
 <div class="app">
@@ -138,14 +140,22 @@
     <header class="drawer-head"><h2 id="drawer-title">Settings</h2><button id="close-settings" type="button" class="icon-btn" aria-label="Close settings">✕</button></header>
 
     <section class="card">
-      <h3>AI connection</h3>
+      <h3 id="ai-title">AI connection</h3>
       <p id="settings-connection" class="small"></p>
+      <div id="account-fields" hidden>
+        <div class="meter" aria-hidden="true"><i id="usage-bar"></i></div>
+        <p id="usage-line" class="muted small"></p>
+        <div class="row"><button id="see-plans" type="button" class="primary">See plans</button><button id="manage-billing" type="button" class="secondary" hidden>Manage billing</button><button id="refresh-plan" type="button" class="secondary">Refresh</button></div>
+        <p class="muted small">Signed in with your Microsoft account. Emails are sent to the AI only to write your draft and are not stored. <a href="pricing.html" target="_blank" rel="noopener noreferrer">Pricing</a> · <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener noreferrer">Terms</a></p>
+      </div>
+      <div id="byok-fields">
       <label for="api-key">Claude API key</label>
       <div class="row"><input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…"><button id="show-key" type="button" class="secondary">Show</button></div>
       <label for="model">Model</label><select id="model"></select>
       <div class="row"><button id="save-key" type="button" class="primary">Save &amp; test</button><button id="remove-key" type="button" class="danger">Remove key</button></div>
-      <label class="check"><input type="checkbox" id="auto-suggest"> Suggest replies automatically when I open an email</label>
       <p class="muted small">Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">console.anthropic.com</a> (Billing must have credit). The key is saved in your Outlook mailbox's add-in settings and sent only to api.anthropic.com.</p>
+      </div>
+      <label class="check"><input type="checkbox" id="auto-suggest"> Suggest replies automatically when I open an email</label>
     </section>
 
     <section class="card">
@@ -201,6 +211,20 @@
       <p id="storage-status" class="muted small"></p>
     </section>
     <p id="settings-status" class="status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+<!-- Plans (subscription mode only; never shown on iPhone/iPad/Android) -->
+<div id="upgrade" class="drawer sheet" hidden role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
+  <div class="drawer-inner">
+    <header class="drawer-head"><h2 id="upgrade-title">Choose your plan</h2><button id="close-upgrade" type="button" class="icon-btn" aria-label="Close plans">✕</button></header>
+    <p id="upgrade-reason" class="small"></p>
+    <div class="interval" role="radiogroup" aria-label="Billing period">
+      <button type="button" data-interval="month" role="radio" aria-checked="true">Monthly</button>
+      <button type="button" data-interval="year" role="radio" aria-checked="false">Annual <span class="save">2 months free</span></button>
+    </div>
+    <div id="plans" class="plans"></div>
+    <p id="upgrade-status" class="status" role="status"></p>
+    <p class="muted small">Prices in AUD and include GST. Secure checkout by Stripe opens in your browser. Cancel any time from Manage billing. Enterprise or 20+ seats: <a href="support.html" target="_blank" rel="noopener noreferrer">contact us</a>.</p>
   </div>
 </div>
 </body>

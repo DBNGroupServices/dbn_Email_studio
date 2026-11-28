@@ -1,0 +1,21 @@
+{
+  "name": "bulwark-hq-assistant-server",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker for Bulwark HQ Assistant: Microsoft sign-in, plans and trial, Stripe billing, AI calls on the service key. Also serves the add-in files.",
+  "scripts": {
+    "test": "node --test test/server.test.mjs",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply assistant --remote",
+    "stripe:setup": "node scripts/stripe-setup.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.8.0",
+    "jose": "6.2.17",
+    "stripe": "23.1.0"
+  },
+  "devDependencies": {
+    "wrangler": "4.161.0"
+  }
+}

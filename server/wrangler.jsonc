@@ -1,0 +1,20 @@
+// Bulwark HQ Assistant: one Worker serves the add-in (static files from ../addin) and the /api.
+// Secrets (set with `wrangler secret put NAME`, never committed):
+//   ANTHROPIC_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+{
+  "name": "bulwark-hq-assistant",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "assistant.bulwarkhq.com.au", "custom_domain": true }],
+  "assets": { "directory": "../addin", "binding": "ASSETS", "run_worker_first": ["/api/*", "/config.js"] },
+  "d1_databases": [{ "binding": "DB", "database_name": "assistant", "database_id": "REPLACE_WITH_D1_DATABASE_ID", "migrations_dir": "migrations" }],
+  "vars": {
+    "PUBLIC_URL": "https://assistant.bulwarkhq.com.au",
+    // Application (client) ID of the Microsoft Entra app registration for sign-in.
+    "MS_CLIENT_ID": "REPLACE_WITH_ENTRA_CLIENT_ID",
+    // Trial length counts Monday to Friday in this time zone.
+    "TRIAL_TZ": "Australia/Melbourne"
+  },
+  "observability": { "enabled": true }
+}

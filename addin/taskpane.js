@@ -1,8 +1,11 @@
 'use strict';
-/* Bulwark HQ Assistant — Outlook task pane (v3.2, Briefing layout). */
+/* Bulwark HQ Assistant — Outlook task pane (v3.3, Briefing layout).
+   Two modes: "byok" (your own Claude API key, kept in your mailbox) and "service"
+   (Bulwark HQ subscription: Microsoft sign-in, plans and billing). */
 const $=id=>document.getElementById(id);
 const all=sel=>Array.from(document.querySelectorAll(sel));
 const Draft=window.DBNDraft,Claude=window.DBNClaude;
+const CONFIG=window.DBN_CONFIG||{mode:'byok'},SERVICE=CONFIG.mode==='service';
 
 const QUICK=[
   {intent:'acknowledge',title:'Acknowledge',tag:'HOLDING',preview:{formal:'Thank you for your email. I confirm receipt and will respond shortly.',balanced:'Thanks for your email. I’ve got this and will come back to you shortly.',friendly:'Thanks for this! I’m on it and will be back to you soon.'}},
@@ -17,7 +20,8 @@ const TOOL_NAMES={summary:'Summary',actions:'Action items',proofread:'Proofread'
 
 const state={store:null,context:null,profiles:[],templates:[],versions:Draft.history(),resultContext:null,kind:'reply',
   lastTask:null,busy:false,applying:false,dirty:false,usingExample:false,armed:null,editing:null,
-  cache:new Map(),suggestToken:0,voiceTouched:false,items:[],selected:0,tone:3};
+  cache:new Map(),suggestToken:0,voiceTouched:false,items:[],selected:0,tone:3,
+  service:null,account:null,accountError:'',interval:'month',mobile:false};
 
 /* ---------- small utilities ---------- */
 const prefs={get(k,d){try{const v=localStorage.getItem('dbn.'+k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
@@ -47,6 +51,7 @@ function firstName(){return Draft.firstName(state.context?.meta?.from?.name||'')
 /* ---------- connection & settings ---------- */
 function modelName(id){return (Claude.MODELS.find(m=>m[0]===id)||[id,id])[1].split(' — ')[0];}
 function connection(){
+  if(SERVICE)return serviceConnection();
   const s=state.store.settings(),ok=!!state.store.apiKey();
   if(ok&&/Add your Claude API key/.test($('banner-text').textContent))banner('');
   $('connection').classList.toggle('ok',ok);$('connection').classList.toggle('bad',!ok);
@@ -63,7 +68,119 @@ function connection(){
   $('storage-status').textContent=(state.store.kind==='mailbox'?'Saved in your Outlook mailbox (follows you to any PC). ':'Browser preview: saved in this browser only. ')+
     `Using ${(u.used/1024).toFixed(1)} KB of ${(u.limit/1024).toFixed(0)} KB.`;
 }
+function settingsCommon(){
+  const s=state.store.settings();
+  $('security-guard').checked=s.security_guard!==false;$('auto-suggest').checked=s.auto_suggest!==false;$('include-attachments').checked=!!s.include_attachments;
+  ['name','role','organisation','signature','style'].forEach(k=>{const e=$('me-'+(k==='organisation'?'org':k));if(e)e.value=s[k]||'';});
+  const u=state.store.usage();
+  $('storage-status').textContent=(state.store.kind==='mailbox'?'Saved in your Outlook mailbox (follows you to any PC). ':'Browser preview: saved in this browser only. ')+
+    `Using ${(u.used/1024).toFixed(1)} KB of ${(u.limit/1024).toFixed(0)} KB.`;
+}
 function loadAll(){connection();loadProfiles();loadTemplates();}
+
+/* ---------- subscription (service mode) ---------- */
+function ready(){return SERVICE?!!state.account&&state.account.plan!=='expired':!!state.store.apiKey();}
+function serviceConnection(){
+  settingsCommon();
+  $('ai-title').textContent='Your plan';$('byok-fields').hidden=true;$('account-fields').hidden=false;
+  const a=state.account,c=$('connection');
+  c.classList.toggle('ok',!!a&&a.plan!=='expired'&&a.plan!=='trial');c.classList.toggle('trial',!!a&&a.plan==='trial');c.classList.toggle('bad',!a||a.plan==='expired');
+  c.title=a?DBNService.planLine(a):'Sign in';
+  if(!a){
+    $('connection-label').textContent=state.accountError?'Sign in':'Connecting…';
+    $('settings-connection').textContent=state.accountError||'Signing in with your Microsoft account…';
+    $('usage-line').textContent='';$('usage-bar').style.width='0';$('see-plans').hidden=true;$('manage-billing').hidden=true;
+    $('refresh-plan').textContent=state.accountError?'Sign in':'Refresh';return;
+  }
+  $('refresh-plan').textContent='Refresh';
+  const left=a.trial?DBNService.workingDaysLeft(a.trial.ends_at):0;
+  $('connection-label').textContent=a.plan==='trial'?`Trial · ${left}d`:a.plan==='expired'?(state.mobile?'Trial ended':'Upgrade'):a.label;
+  $('settings-connection').textContent=(a.email?a.email+' · ':'')+DBNService.planLine(a)+'.';
+  // The meter shows what runs out first: trial replies, premium (Opus) replies, or the monthly allowance.
+  const u=a.usage||{},premium=u.premium_limit&&a.plan!=='trial';
+  const used=a.plan==='trial'?50-(a.trial?a.trial.replies_left:0):premium?Math.min(u.premium||0,u.premium_limit):u.replies||0;
+  const limit=a.plan==='trial'?50:premium?u.premium_limit:u.replies_limit||0;
+  const pct=a.plan==='expired'?100:limit?Math.min(100,Math.round(used/limit*100)):0;
+  $('usage-bar').style.width=pct+'%';$('usage-bar').classList.toggle('high',pct>=80);
+  $('usage-line').textContent=a.plan==='expired'?'Your free trial has ended.':a.plan==='trial'?`${used} of 50 trial replies used.`:
+    premium?`${used} of ${limit} premium (Opus) replies used this month. After that, replies use Sonnet.`:`${used} of ${limit} replies used this month.`;
+  $('see-plans').hidden=state.mobile||(a.plan!=='trial'&&a.plan!=='expired'&&a.plan!=='essentials');
+  $('see-plans').textContent=a.plan==='essentials'?'Upgrade':'See plans';
+  $('manage-billing').hidden=state.mobile||!a.can_manage_billing;
+  if(a.plan==='expired'&&!/^Your free trial/.test($('banner-text').textContent))
+    banner(state.mobile?'Your free trial has ended.':'Your free trial has ended. Choose a plan to keep drafting.',state.mobile?'':'See plans',state.mobile?null:()=>openUpgrade());
+  else if(a.plan!=='expired'&&/^Your free trial|^Welcome|^Sign in/.test($('banner-text').textContent))banner('');
+}
+async function refreshAccount(interactive){
+  if(!SERVICE||!state.service)return;
+  try{
+    if(interactive)await state.service.signIn();
+    state.account=await state.service.me();state.accountError='';
+  }catch(error){
+    state.accountError=error.message;
+    if(error.code==='sso'||error.status===401)banner('Sign in with your Microsoft account to start your free trial.','Sign in',()=>refreshAccount(true));
+  }
+  if(state.store)connection();
+  return state.account;
+}
+function setAccount(a){if(a){state.account=a;if(state.store)connection();}}
+function paywall(error){
+  if(error.account)setAccount(error.account);else refreshAccount();
+  if(state.mobile)return status(error.code==='plan_required'?'Your free trial has ended.':'You have reached this month’s limit.','error');
+  status(error.message,'error');openUpgrade(error.message);
+}
+function isPaywall(error){return SERVICE&&error&&(error.code==='plan_required'||error.code==='limit_reached');}
+async function aiSuggest(email,s){return SERVICE?state.service.suggest(email,s):Claude.suggest(state.store.apiKey(),s.model,email,s);}
+async function aiGenerate(task,s,profile){
+  if(!SERVICE)return Claude.generate(state.store.apiKey(),s.model,task,s,profile);
+  const r=await state.service.generate(task,s,profile);
+  setAccount(r.account);return r;
+}
+
+function renderPlans(){
+  const a=state.account||{},current=a.plan;
+  all('.interval button').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.interval===state.interval)));
+  $('plans').replaceChildren(...DBNService.PRICING.map(p=>{
+    const card=el('div','plan'+(p.best?' best':'')+(current===p.plan?' current':''));
+    if(p.best)card.append(el('span','badge','MOST POPULAR'));
+    const yr=state.interval==='year',price=yr?p.year:p.month;
+    const pr=el('div','price','A$'+price);pr.append(el('small','',(p.seats?' per user':'')+(yr?' / year':' / month')));
+    card.append(el('h3','',p.name),pr,el('div','blurb',p.blurb+(yr?` · A$${(p.year/12).toFixed(2)} a month`:'')));
+    let seats=null;
+    if(p.seats){const row=el('label','seats','Seats');seats=document.createElement('input');seats.type='number';seats.min='3';seats.max='500';seats.value='3';seats.id='team-seats';row.append(seats);card.append(row);}
+    const b=el('button','primary',current===p.plan?'Your current plan':current==='trial'||current==='expired'?'Choose '+p.name:'Switch to '+p.name);b.type='button';
+    b.disabled=current===p.plan;
+    b.addEventListener('click',()=>checkout(p.plan,seats?Number(seats.value):undefined,b));
+    card.append(b);return card;
+  }));
+}
+function openUpgrade(reason){
+  if(!SERVICE||state.mobile)return;
+  const a=state.account;
+  $('upgrade-reason').textContent=reason||(a&&a.plan==='trial'?`You are on the free trial: ${DBNService.planLine(a).replace('Free trial · ','')}. No card was needed to start.`:'');
+  $('upgrade-status').textContent='';renderPlans();$('drawer').hidden=true;$('upgrade').hidden=false;$('close-upgrade').focus();
+}
+function closeUpgrade(){$('upgrade').hidden=true;}
+function openUrl(url){
+  try{if(window.Office&&Office.context&&Office.context.ui&&typeof Office.context.ui.openBrowserWindow==='function'){Office.context.ui.openBrowserWindow(url);return;}}catch(e){/* fall back */}
+  window.open(url,'_blank','noopener');
+}
+async function checkout(plan,seats,button){
+  const a=state.account;
+  if(a&&a.can_manage_billing&&a.plan!=='trial'&&a.plan!=='expired')return manageBilling(); // switching plans happens in the Stripe portal
+  $('upgrade-status').textContent='Opening secure checkout…';$('upgrade-status').className='status busy';
+  if(button)button.disabled=true;
+  try{
+    const r=await state.service.checkout(plan,state.interval,seats);
+    openUrl(r.url);
+    $('upgrade-status').className='status ok';$('upgrade-status').textContent='Checkout opened in your browser. When you have paid, come back here: your plan updates automatically.';
+  }catch(error){$('upgrade-status').className='status error';$('upgrade-status').textContent=error.message;}
+  finally{if(button)button.disabled=false;}
+}
+async function manageBilling(){
+  try{const r=await state.service.portal();openUrl(r.url);settingsStatus('Billing opened in your browser.');}
+  catch(error){settingsStatus(error.message,true);}
+}
 
 /* ---------- voices (profiles) ---------- */
 function currentProfile(){return state.profiles.find(p=>p.id===$('profile').value)||null;}
@@ -209,18 +326,18 @@ async function loadSuggestions(){
   const s=state.store.settings();
   const key=(ctx&&(ctx.id||ctx.itemId))||'';
   const fallback=()=>{renderCards(QUICK);$('summary').hidden=true;showInsights(null);};
-  if(!state.store.apiKey()||s.auto_suggest===false||!ctx||!String(ctx.text||'').trim()){fallback();setVoiceFor('other');return;}
+  if(!ready()||s.auto_suggest===false||!ctx||!String(ctx.text||'').trim()){fallback();setVoiceFor('other');return;}
   if(key&&state.cache.has(key)){apply(state.cache.get(key));return;}
   const token=++state.suggestToken;
   renderCards(null,true);showInsights(null);$('summary').hidden=false;$('summary').className='summary loading';$('summary').textContent='Reading the email…';
   try{
-    const r=await Claude.suggest(state.store.apiKey(),s.model,{text:ctx.text,meta:ctx.meta,subject:ctx.subject},s);
+    const r=await aiSuggest({text:ctx.text,meta:ctx.meta,subject:ctx.subject},s);
     if(token!==state.suggestToken)return;
     if(key)state.cache.set(key,r);
     apply(r);
   }catch(error){
     if(token!==state.suggestToken)return;
-    fallback();status('Suggestions unavailable: '+error.message,'error');
+    fallback();if(isPaywall(error))refreshAccount();else status('Suggestions unavailable: '+error.message,'error');
   }
   function apply(r){
     $('summary').hidden=false;$('summary').className='summary';$('summary').textContent=r.summary;
@@ -264,7 +381,10 @@ async function gatherFiles(ctx){
 async function generate(opts={}){
   if(state.busy)return;
   if(!state.store)return status('Still connecting to Outlook… try again in a moment.','error');
-  if(!state.store.apiKey()){openSettings();return status('Add your Claude API key first (Settings → AI connection).','error');}
+  if(SERVICE&&!state.account)await refreshAccount(!!state.accountError);
+  if(SERVICE&&!state.account)return status(state.accountError||'Signing in… try again in a moment.','error');
+  if(SERVICE&&state.account.plan==='expired')return paywall({code:'plan_required',message:'Your free trial has ended. Choose a plan to keep using Bulwark HQ Assistant.'});
+  if(!SERVICE&&!state.store.apiKey()){openSettings();return status('Add your Claude API key first (Settings → AI connection).','error');}
   const m=mode(),typed=$('points').value.trim();
   if(!opts.tool&&m==='reply'){const pick=state.items[state.selected];if(pick){if(pick.intent)opts.intent=pick.intent;else opts.instruction=pick.instruction;}}
   if(!opts.tool&&!opts.intent&&!opts.instruction&&!typed&&m!=='rewrite'){status(m==='reply'?'Wait for the suggested replies, or type what the reply should say.':'Type what the email should say.','error');$('points').focus();return;}
@@ -279,14 +399,14 @@ async function generate(opts={}){
     if(ctx&&!ctx.compose)task.meta={...ctx.meta,reply_all:false};
     if(opts.tool){task.action=opts.tool;task.language=typed||'English';task.points=opts.tool==='translate'?'':typed;}
     const s=state.store.settings();
-    const result=await Claude.generate(state.store.apiKey(),s.model,task,s,currentProfile());
+    const result=await aiGenerate(task,s,currentProfile());
     state.kind=opts.tool?'tool':m;state.tool=opts.tool||'';
     state.resultContext=m==='new'?null:ctx;
     state.lastTask=opts.tool?null:task;
     state.versions.reset();
     setBusy(false);
     showResult(result);
-  }catch(error){setBusy(false);status(errorText(error),'error');}
+  }catch(error){setBusy(false);if(isPaywall(error))paywall(error);else status(errorText(error),'error');}
 }
 async function refine(instruction){
   if(state.busy||!instruction.trim())return;
@@ -294,9 +414,9 @@ async function refine(instruction){
   setBusy(true);draftStatus('Revising…','busy');
   try{
     const s=state.store.settings();
-    const result=await Claude.generate(state.store.apiKey(),s.model,{...state.lastTask,intent:'',variants:1,refinement:instruction,current:{subject:$('draft-subject').value,body:$('draft-body').value}},s,currentProfile());
+    const result=await aiGenerate({...state.lastTask,intent:'',variants:1,refinement:instruction,current:{subject:$('draft-subject').value,body:$('draft-body').value}},s,currentProfile());
     setBusy(false);showResult(result);$('refine-text').value='';draftStatus('Revised. Use ‹ › to compare versions.');
-  }catch(error){setBusy(false);draftStatus(errorText(error),'error');}
+  }catch(error){setBusy(false);if(isPaywall(error))paywall(error);draftStatus(errorText(error),'error');}
 }
 
 /* ---------- draft view ---------- */
@@ -435,9 +555,18 @@ function wire(){
     DBNDictation.create({button:$('mic'),field:$('points'),onState:on=>{if(on)status('Listening… tap the mic to stop.');else if(/^Listening/.test($('status').textContent))status('');},onMessage:t=>{if(t)status(t);}});
     DBNDictation.create({button:$('mic2'),field:$('refine-text'),onMessage:t=>{if(t)draftStatus(t);}});
   }
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('drawer').hidden)closeSettings();});
+  document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(!$('upgrade').hidden)closeUpgrade();else if(!$('drawer').hidden)closeSettings();});
+  // Plans & billing (service mode)
+  $('close-upgrade').addEventListener('click',closeUpgrade);
+  $('upgrade').addEventListener('click',e=>{if(e.target===$('upgrade'))closeUpgrade();});
+  all('.interval button').forEach(b=>b.addEventListener('click',()=>{state.interval=b.dataset.interval;renderPlans();}));
+  $('see-plans').addEventListener('click',()=>openUpgrade());
+  $('manage-billing').addEventListener('click',manageBilling);
+  $('refresh-plan').addEventListener('click',async()=>{settingsStatus('Checking your plan…');await refreshAccount(!!state.accountError);settingsStatus(state.accountError||'Plan up to date.',!!state.accountError);});
+  // Coming back from checkout in the browser: pick up the new plan.
+  window.addEventListener('focus',()=>{if(SERVICE&&state.service&&state.account&&Date.now()-(state._lastRefresh||0)>5000){state._lastRefresh=Date.now();refreshAccount();}});
   // Settings
-  $('open-settings').addEventListener('click',openSettings);$('connection').addEventListener('click',openSettings);
+  $('open-settings').addEventListener('click',openSettings);$('connection').addEventListener('click',()=>{if(SERVICE&&state.account&&(state.account.plan==='expired'||state.account.plan==='trial')&&!state.mobile)openUpgrade();else openSettings();});
   $('close-settings').addEventListener('click',closeSettings);
   $('drawer').addEventListener('click',e=>{if(e.target===$('drawer'))closeSettings();});
   $('show-key').addEventListener('click',()=>{const k=$('api-key');k.type=k.type==='password'?'text':'password';$('show-key').textContent=k.type==='password'?'Show':'Hide';});
@@ -469,11 +598,17 @@ let started=false;
 function init(inOutlook){
   if(started)return;started=true;window.__dbnStarted=true;
   state.store=DBNStore.create();
+  if(SERVICE){
+    try{const pf=inOutlook&&Office.context.platform;state.mobile=!!pf&&(pf===Office.PlatformType.iOS||pf===Office.PlatformType.Android);}catch(e){/* desktop */}
+    state.service=window.__dbnServiceFactory?window.__dbnServiceFactory():DBNService.create({baseUrl:CONFIG.publicUrl||location.origin});
+  }
   loadAll();syncButtons();
-  if(!state.store.apiKey())banner('Welcome! Add your Claude API key to start drafting.','Open settings',openSettings);
+  const welcome=()=>{if(!SERVICE&&!state.store.apiKey())banner('Welcome! Add your Claude API key to start drafting.','Open settings',openSettings);};
+  welcome();
+  if(SERVICE)refreshAccount().then(()=>{if(state.account&&mode()==='reply'&&!$('view-compose').hidden&&!state.cache.size)loadSuggestions();});
   if(!inOutlook){state.context=null;showEmail(null);$('email-line').textContent='Browser preview';return;}
   applyOfficeTheme();
-  readCurrent().then(()=>{if(!state.store.apiKey())banner('Welcome! Add your Claude API key to start drafting.','Open settings',openSettings);});
+  readCurrent().then(welcome);
   try{Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged,()=>{onItemChanged();});}catch(error){/* older Outlook: reopen the pane */}
 }
 function boot(){

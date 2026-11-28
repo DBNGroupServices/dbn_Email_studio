@@ -1,0 +1,35 @@
+name: Subscription service (Cloudflare Worker)
+
+on:
+  push:
+    branches: ['**']
+    paths: ['server/**', 'addin/**', 'addin-build/**', '.github/workflows/server.yml']
+  pull_request:
+    paths: ['server/**', 'addin/**', 'addin-build/**', '.github/workflows/server.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Server tests (plans, trial, Stripe, Team seats)
+        run: npm test
+      - name: Subscription pane end-to-end (Chromium)
+        run: |
+          npm install --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium
+          node test/pane.browser.mjs
+      - name: Worker bundles
+        run: npx wrangler deploy --dry-run --outdir dist
