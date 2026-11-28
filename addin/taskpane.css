@@ -185,3 +185,26 @@ main.app h1{font-family:var(--display);letter-spacing:-.02em}
 .top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px}
 [hidden]{display:none!important}
+
+/* ---------- subscription ---------- */
+.meter{height:6px;border-radius:999px;background:var(--line);overflow:hidden;margin:8px 0 4px}
+.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent-2),var(--accent-hi));border-radius:inherit;transition:width .6s var(--ease)}
+.meter i.high{background:var(--gold)}
+.conn.trial .dot{background:var(--gold)}
+.sheet .drawer-inner{width:min(100%,520px)}
+.interval{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:4px;margin:8px 0 12px}
+.interval button{border:0;background:transparent;border-radius:999px;min-height:38px;font-weight:600;font-size:13px}
+.interval button[aria-checked="true"]{background:var(--accent-2);box-shadow:0 6px 20px var(--glow)}
+.interval .save{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-left:4px}
+.plans{display:flex;flex-direction:column;gap:10px}
+.plan{position:relative;background:rgba(11,37,71,.55);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.plan.best{border-color:var(--accent);box-shadow:0 0 0 1px rgba(106,141,216,.25),0 18px 40px rgba(1,89,183,.25)}
+.plan .badge{position:absolute;top:-9px;right:14px;background:var(--gold);color:var(--ink-950);font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.16em;padding:2px 8px;border-radius:999px}
+.plan h3{margin:0;font-family:var(--display);font-size:18px;letter-spacing:-.02em}
+.plan .price{font-family:var(--display);font-size:28px;font-weight:700;letter-spacing:-.03em}
+.plan .price small{font-family:var(--body);font-size:12px;font-weight:400;color:var(--muted);letter-spacing:0}
+.plan .blurb{font-size:12.5px;color:var(--text-2)}
+.plan .seats{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.plan .seats input{width:72px;background:rgba(255,255,255,.06);border:1px solid var(--line-2);border-radius:10px;padding:6px 8px}
+.plan .primary{min-height:44px;font-size:14px}
+.plan.current .primary{background:rgba(255,255,255,.06);box-shadow:none}
