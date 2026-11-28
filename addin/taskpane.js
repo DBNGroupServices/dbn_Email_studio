@@ -1,22 +1,23 @@
 'use strict';
-/* dbn Email Studio — Outlook task pane, "one box" design (v3.1). */
+/* Bulwark HQ Assistant — Outlook task pane (v3.2, Briefing layout). */
 const $=id=>document.getElementById(id);
 const all=sel=>Array.from(document.querySelectorAll(sel));
 const Draft=window.DBNDraft,Claude=window.DBNClaude;
 
 const QUICK=[
-  {intent:'acknowledge',title:'Acknowledge',hint:'Confirm you’ve got it and are on it'},
-  {intent:'confirm',title:'Confirm or approve',hint:'Restate the key details and say yes'},
-  {intent:'more-info',title:'Ask for more information',hint:'List what you need to act'},
-  {intent:'decline',title:'Decline politely',hint:'Say no clearly and courteously'}];
+  {intent:'acknowledge',title:'Acknowledge',tag:'HOLDING',preview:{formal:'Thank you for your email. I confirm receipt and will respond shortly.',balanced:'Thanks for your email. I’ve got this and will come back to you shortly.',friendly:'Thanks for this! I’m on it and will be back to you soon.'}},
+  {intent:'confirm',title:'Confirm or approve',tag:'YES',preview:{formal:'I confirm the arrangements as outlined in your email.',balanced:'Confirming this is all fine as you’ve outlined.',friendly:'All good from my end, happy to confirm.'}},
+  {intent:'more-info',title:'Ask for more information',tag:'QUESTIONS',preview:{formal:'To progress this, could you please provide the following details.',balanced:'Could you send through a few details so I can action this?',friendly:'Happy to help. Could you send me a couple of details first?'}},
+  {intent:'decline',title:'Decline politely',tag:'NO',preview:{formal:'Unfortunately we are unable to accommodate this request.',balanced:'Unfortunately I can’t approve this one.',friendly:'Sorry, I can’t make this one work.'}}];
+const TONE_STEPS=[['Very formal','Formal','formal'],['Formal','Professional','formal'],['Balanced','Use profile','balanced'],['Friendly','Warm & professional','friendly'],['Very friendly','Friendly','friendly']];
+const GREETINGS=['Dear {n},','Good {t} {n},','Hi {n},','Hi {n},','Hey {n},'];
+const MINUTES_PER_REPLY=4;
 const AUDIENCE_VOICE={tenant:'builtin-tenant',contractor:'builtin-contractor',executive:'builtin-executive',team:'builtin-team'};
 const TOOL_NAMES={summary:'Summary',actions:'Action items',proofread:'Proofread',translate:'Translation'};
-const REPLY_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 6 6v4"></path></svg>';
-const CHEV='<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
 
 const state={store:null,context:null,profiles:[],templates:[],versions:Draft.history(),resultContext:null,kind:'reply',
   lastTask:null,busy:false,applying:false,dirty:false,usingExample:false,armed:null,editing:null,
-  cache:new Map(),suggestToken:0,voiceTouched:false};
+  cache:new Map(),suggestToken:0,voiceTouched:false,items:[],selected:0,tone:3};
 
 /* ---------- small utilities ---------- */
 const prefs={get(k,d){try{const v=localStorage.getItem('dbn.'+k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
@@ -81,7 +82,7 @@ function setVoiceFor(audience){
   const want=AUDIENCE_VOICE[audience];
   const id=want&&state.profiles.some(p=>p.id===want)?want:(state.profiles.some(p=>p.id===def)?def:$('profile').value);
   $('profile').value=id;
-  $('voice-note').textContent=want&&id===want?'auto-picked for '+audience+'s':'';
+  $('voice-note').textContent=want&&id===want?'auto-picked':'';
 }
 function exampleBox(text=''){
   const wrap=el('div','example');
@@ -133,16 +134,24 @@ function mode(){
   if(c.compose)return c.selection?'rewrite':'compose';
   return 'reply';
 }
-function showEmail(ctx){
-  const line=$('email-line');line.replaceChildren();
+function subjectHtml(text){
+  // Last two words in the accent colour, like the website's headlines.
+  const box=$('email-subject');box.replaceChildren();
+  const words=String(text||'').trim().split(/\s+/).filter(Boolean);
+  if(words.length<4){box.textContent=words.join(' ');return;}
+  box.append(words.slice(0,-2).join(' ')+' ',el('span','hl',words.slice(-2).join(' ')));
+}
+function showEmail(ctx,audience){
+  const line=$('email-line');
   const m=mode();
-  if(m==='reply'){const who=ctx?.meta?.from?.name||ctx?.meta?.from?.email||'the sender';line.append('Replying to ',el('strong','',who));}
-  else if(m==='new')line.textContent='New email';
-  else line.textContent=m==='rewrite'?'Rewriting your selected text':'Writing in your draft';
-  $('email-subject').textContent=ctx?.subject||'';
-  $('generate').textContent={reply:'Write reply',new:'Write email',compose:'Write it',rewrite:'Rewrite'}[m];
-  $('points-label').textContent=m==='reply'?'Or say what you want':m==='rewrite'?'How should it change?':'What should it say?';
+  if(m==='reply'){const who=ctx?.meta?.from?.name||ctx?.meta?.from?.email||'Sender';line.textContent=who+(audience&&audience!=='other'?' · '+audience:'');}
+  else line.textContent=m==='new'?'New email':m==='rewrite'?'Rewrite selected text':'Your draft';
+  subjectHtml(ctx?.subject||(m==='new'?'What would you like to write?':''));
+  $('generate').textContent={reply:'Write full reply',new:'Write email',compose:'Write it',rewrite:'Rewrite'}[m];
+  $('points').placeholder=m==='reply'?'Add a detail, or say exactly what you want…':m==='rewrite'?'How should it change?':'What should it say?';
   $('suggest-label').hidden=$('suggestions').hidden=m!=='reply';
+  if(m!=='reply'){$('insights').hidden=true;$('summary').hidden=true;}
+  renderPreview();
 }
 async function readCurrent(){
   const previous=state.context,candidate=DBNOffice.target(window.Office);
@@ -152,7 +161,7 @@ async function readCurrent(){
   }catch(error){state.context=previous||(!state.usingExample?candidate:null);status(error.message,'error');}
   state.voiceTouched=false;
   showEmail(state.context);banner('');
-  if(mode()==='reply')loadSuggestions();else{$('summary').hidden=true;setVoiceFor('other');}
+  if(mode()==='reply')loadSuggestions();else setVoiceFor('other');
 }
 function onItemChanged(){
   if(state.dirty){banner('You moved to another email. Your draft is kept until you load it.','Load new email',()=>{reset();readCurrent();});}
@@ -163,25 +172,47 @@ function reset(){state.versions.reset();state.dirty=false;state.resultContext=nu
 /* ---------- suggested replies ---------- */
 function renderCards(items,loading){
   const box=$('suggestions');box.replaceChildren();
-  if(loading){for(let i=0;i<3;i++){const b=el('div','card-btn skeleton');b.innerHTML='<span class="tile"></span><span class="txt"><span class="bar1"></span><span class="bar2"></span></span>';box.append(b);}return;}
-  for(const item of items){
-    const b=el('button','card-btn');b.type='button';
-    const tile=el('span','tile');tile.innerHTML=REPLY_ICON;
-    const txt=el('span','txt');txt.append(el('strong','',item.title),el('span','hint2',item.hint));
-    b.append(tile,txt);b.insertAdjacentHTML('beforeend',CHEV);
-    b.addEventListener('click',()=>generate(item.intent?{intent:item.intent}:{instruction:item.instruction,label:item.title}));
+  if(loading){for(let i=0;i<3;i++){const b=el('div','card-btn skeleton');b.append(el('span','num','0'+(i+1)),el('span','txt'));box.append(b);}state.items=[];renderPreview();return;}
+  state.items=items;state.selected=0;
+  items.forEach((item,i)=>{
+    const b=el('button','card-btn'+(i===0?' on':''));b.type='button';b.setAttribute('aria-pressed',String(i===0));
+    b.append(el('span','num','0'+(i+1)),el('span','txt',item.title),el('span','tag',item.tag||''));
+    b.addEventListener('click',()=>{state.selected=i;all('#suggestions .card-btn').forEach((x,j)=>{x.classList.toggle('on',j===i);x.setAttribute('aria-pressed',String(j===i));});renderPreview();});
+    b.addEventListener('dblclick',()=>generate());
     box.append(b);
-  }
+  });
+  renderPreview();
+}
+function renderTone(){
+  $('tone').replaceChildren(...TONE_STEPS.map(([label],i)=>{
+    const b=el('button');b.type='button';b.setAttribute('role','radio');b.setAttribute('aria-label',label);b.setAttribute('aria-checked',String(i+1===state.tone));
+    b.addEventListener('click',()=>{state.tone=i+1;prefs.set('tone',state.tone);renderTone();renderPreview();});
+    return b;
+  }));
+  $('tone-label').textContent=TONE_STEPS[state.tone-1][0];
+}
+function renderPreview(){
+  const item=state.items[state.selected],show=mode()==='reply'&&!!item&&!!item.preview;
+  $('preview').hidden=!show;if(!show)return;
+  const name=firstName()||(state.usingExample?'Alex':'')||'there';
+  const part=new Date().getHours()<12?'morning':'afternoon';
+  $('preview-greeting').textContent=GREETINGS[state.tone-1].replace('{n}',name).replace('{t}',part);
+  $('preview-text').textContent=item.preview[TONE_STEPS[state.tone-1][2]]||item.preview.balanced||'';
+}
+function showInsights(r){
+  const on=!!r;$('insights').hidden=!on;if(!on)return;
+  $('in-priority').textContent=r.priority;$('in-priority').className=r.priority==='High'?'high':'';
+  $('in-need').textContent=r.need||'—';$('in-mood').textContent=r.mood||'—';
 }
 async function loadSuggestions(){
-  const ctx=state.usingExample?{itemId:'example',text:$('source').value,meta:{from:{name:'Alex (fictional)'}},subject:$('email-subject').textContent}:state.context;
+  const ctx=state.usingExample?{itemId:'example',text:$('source').value,meta:{from:{name:'Alex (fictional)'}},subject:'Saturday dock access'}:state.context;
   const s=state.store.settings();
   const key=(ctx&&(ctx.id||ctx.itemId))||'';
-  const fallback=()=>{renderCards(QUICK);$('summary').hidden=true;};
+  const fallback=()=>{renderCards(QUICK);$('summary').hidden=true;showInsights(null);};
   if(!state.store.apiKey()||s.auto_suggest===false||!ctx||!String(ctx.text||'').trim()){fallback();setVoiceFor('other');return;}
   if(key&&state.cache.has(key)){apply(state.cache.get(key));return;}
   const token=++state.suggestToken;
-  renderCards(null,true);$('summary').hidden=false;$('summary').className='summary loading';$('summary').textContent='Reading the email…';
+  renderCards(null,true);showInsights(null);$('summary').hidden=false;$('summary').className='summary loading';$('summary').textContent='Reading the email…';
   try{
     const r=await Claude.suggest(state.store.apiKey(),s.model,{text:ctx.text,meta:ctx.meta,subject:ctx.subject},s);
     if(token!==state.suggestToken)return;
@@ -193,8 +224,19 @@ async function loadSuggestions(){
   }
   function apply(r){
     $('summary').hidden=false;$('summary').className='summary';$('summary').textContent=r.summary;
-    renderCards(r.suggestions);setVoiceFor(r.audience);
+    showInsights(r);renderCards(r.suggestions);setVoiceFor(r.audience);
+    if(!state.usingExample)showEmail(state.context,r.audience);
   }
+}
+
+/* ---------- time saved (estimate, kept on this PC) ---------- */
+function weekKey(){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.toISOString().slice(0,10);}
+function showSaved(add){
+  let st=prefs.get('stats',{week:'',count:0});if(st.week!==weekKey())st={week:weekKey(),count:0};
+  if(add){st.count+=add;prefs.set('stats',st);}
+  const mins=st.count*MINUTES_PER_REPLY,h=Math.floor(mins/60);
+  $('saved-time').textContent=h?`${h}h ${mins%60}m`:`${mins}m`;
+  $('saved-count').textContent=st.count+(st.count===1?' REPLY':' REPLIES');
 }
 
 /* ---------- writing ---------- */
@@ -224,14 +266,15 @@ async function generate(opts={}){
   if(!state.store)return status('Still connecting to Outlook… try again in a moment.','error');
   if(!state.store.apiKey()){openSettings();return status('Add your Claude API key first (Settings → AI connection).','error');}
   const m=mode(),typed=$('points').value.trim();
-  if(!opts.tool&&!opts.intent&&!opts.instruction&&!typed&&m!=='rewrite')return status(m==='reply'?'Pick a suggested reply, or type what the reply should say.':'Type what the email should say.','error'),$('points').focus();
+  if(!opts.tool&&m==='reply'){const pick=state.items[state.selected];if(pick){if(pick.intent)opts.intent=pick.intent;else opts.instruction=pick.instruction;}}
+  if(!opts.tool&&!opts.intent&&!opts.instruction&&!typed&&m!=='rewrite'){status(m==='reply'?'Wait for the suggested replies, or type what the reply should say.':'Type what the email should say.','error');$('points').focus();return;}
   setBusy(true,opts.tool?'Working…':'Writing…');
   try{
     const ctx=state.usingExample?null:(state.context||DBNOffice.target(window.Office));
     const files=await gatherFiles(ctx);
     const points=[opts.instruction,typed].filter(Boolean).join('\n');
     const task={source:$('source').value,points,mode:m==='new'?'compose':m==='compose'?'compose':m==='rewrite'?'rewrite':'reply',
-      files,tone:'Use profile',length:(currentProfile()||{}).length||'Standard',format:(currentProfile()||{}).format||'Paragraphs',
+      files,tone:TONE_STEPS[state.tone-1][1],sliders:{formality:6-state.tone,warmth:state.tone},length:(currentProfile()||{}).length||'Standard',format:(currentProfile()||{}).format||'Paragraphs',
       intent:opts.intent||'',variants:1};
     if(ctx&&!ctx.compose)task.meta={...ctx.meta,reply_all:false};
     if(opts.tool){task.action=opts.tool;task.language=typed||'English';task.points=opts.tool==='translate'?'':typed;}
@@ -320,7 +363,7 @@ async function applyResult(how,button){
     if(linked&&state.kind!=='new'){await DBNOffice.apply(window.Office,linked,$('draft-body').value,how);}
     else if(canNewMessage()){Office.context.mailbox.displayNewMessageForm({subject:$('draft-subject').value,htmlBody:Draft.toHtml($('draft-body').value)});}
     else{state.applying=false;await copyResult();return;}
-    state.dirty=false;
+    state.dirty=false;showSaved(1);
     draftStatus(linked&&state.kind!=='new'?(linked.compose?'Inserted into your draft. Nothing was sent.':'Opened in Outlook for your review. Nothing was sent.'):'Opened as a new email. Add recipients and review it. Nothing was sent.');
   }catch(error){draftStatus(error.message,'error');}
   finally{state.applying=false;syncButtons();}
@@ -384,14 +427,12 @@ function wire(){
   $('example').addEventListener('click',()=>{
     state.context=null;state.usingExample=true;reset();state.voiceTouched=false;
     $('source').value='Hi Sam,\n\nCould you confirm whether contractors can access the loading dock this Saturday from 7am for the chiller replacement? They will need the goods lift on standby.\n\nThanks,\nAlex';
-    $('email-line').replaceChildren('Replying to ',el('strong','','Alex (fictional example)'));
-    $('email-subject').textContent='Saturday dock access';
-    $('suggest-label').hidden=$('suggestions').hidden=false;$('generate').textContent='Write reply';
+    showEmail({meta:{from:{name:'Alex (fictional example)'}},subject:'Saturday dock access for contractors'});
     loadSuggestions();
   });
   if(window.DBNDictation){
     const hint=$('mic-hint'),base=hint.textContent;
-    DBNDictation.create({button:$('mic'),field:$('points'),onState:on=>{hint.textContent=on?'Listening… tap the mic to stop':base;},onMessage:t=>{if(t)status(t);}});
+    DBNDictation.create({button:$('mic'),field:$('points'),onState:on=>{if(on)status('Listening… tap the mic to stop.');else if(/^Listening/.test($('status').textContent))status('');},onMessage:t=>{if(t)status(t);}});
     DBNDictation.create({button:$('mic2'),field:$('refine-text'),onMessage:t=>{if(t)draftStatus(t);}});
   }
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('drawer').hidden)closeSettings();});
@@ -430,13 +471,13 @@ function init(inOutlook){
   state.store=DBNStore.create();
   loadAll();syncButtons();
   if(!state.store.apiKey())banner('Welcome! Add your Claude API key to start drafting.','Open settings',openSettings);
-  if(!inOutlook){state.context=null;showEmail(null);$('email-subject').textContent='Open Email Studio from the Outlook ribbon to work with your emails.';return;}
+  if(!inOutlook){state.context=null;showEmail(null);$('email-line').textContent='Browser preview';return;}
   applyOfficeTheme();
   readCurrent().then(()=>{if(!state.store.apiKey())banner('Welcome! Add your Claude API key to start drafting.','Open settings',openSettings);});
   try{Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged,()=>{onItemChanged();});}catch(error){/* older Outlook: reopen the pane */}
 }
 function boot(){
-  try{wire();show('compose');renderCards(QUICK);}
+  try{wire();show('compose');state.tone=Math.min(5,Math.max(1,Number(prefs.get('tone',3))||3));renderTone();renderCards(QUICK);showSaved(0);}
   catch(error){status('Start-up error: '+error.message,'error');throw error;}
   if(window.Office&&typeof Office.onReady==='function'){
     Office.onReady(info=>{

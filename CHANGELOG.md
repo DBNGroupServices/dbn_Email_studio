@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.2.0 — 28 November 2026 — Bulwark HQ Assistant
+
+- **Renamed Bulwark HQ Assistant**, with the Bulwark HQ logo, a divider and "Assistant" in the header (Logo 1). New app icons use the B mark with a blue dot. Manifest 3.2.0.0: display name "Bulwark HQ Assistant", ribbon group "Bulwark HQ", button "Assistant".
+- **Bulwark HQ look**: the website's navy, blues and gold, Space Grotesk / Inter / IBM Plex Mono (bundled in `addin/fonts`, no CDN), spaced mono labels, radar backdrop, outlined numerals and glowing pill buttons.
+- **Briefing layout**: an insight row (Priority, They need, Mood) and a one-line summary; three best replies with tags; a five-step tone control with a live preview of the opening line; a voice chip; a notes box with dictation; "Write full reply".
+- The suggestion call now also returns priority, need, mood, a tag and three tone previews per reply (still one low-effort call per email, cached).
+- **Saved this week**: an estimate of 4 minutes per reply inserted, counted on this PC.
+- Draft screen and Settings restyled to match. All previous functions are kept.
+
 ## 3.1.0 — 26 November 2026 — simpler "one box" design
 
 - **New layout (Option A, Rialto Black & Blue).** A black header band shows who you're replying to, the subject and a one-line summary. Below it are three **suggested replies written for that email**, then one box to type (or say) what you want. The tabs, sub-modes and Tone/Length controls are gone from the main screen.

@@ -7,7 +7,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {chromium}=require('playwright');
 const ROOT=path.resolve(__dirname,'..','addin');
-const TYPES={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.xml':'application/xml'};
+const TYPES={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.xml':'application/xml','.svg':'image/svg+xml','.woff2':'font/woff2'};
 
 const OFFICE_MOCK=`
 window.__calls=[];const bag={};
@@ -26,10 +26,11 @@ const SPEECH_MOCK=`
 window.SpeechRecognition=window.webkitSpeechRecognition=class{start(){window.__sr=this;setTimeout(()=>{this.onresult&&this.onresult({results:[Object.assign([{transcript:'propose re-testing Tuesday at ten'}],{isFinal:true})]});},30);}stop(){this.onend&&this.onend();}};`;
 
 const reply={subject:'Re: whitelabel',body:'Hi Jordan,\n\nAgreed, we will add the records.\n\n- SPF record\n- DKIM record\n\nCould we re-test on [confirm date]?\n\nKind regards,\nSam',checks:['Test date not supplied.']};
-const suggestions={summary:'Jordan says your sending domain is missing SPF and DKIM records and asks to re-test.',audience:'contractor',
-  suggestions:[{title:'Agree and propose a new date',hint:'Ask which day suits them',instruction:'Agree the records are missing and propose re-testing; ask which day suits.'},
-    {title:'Ask them to fix it',hint:'Request the records be added',instruction:'Ask them to add the records on their side.'},
-    {title:'Acknowledge for now',hint:'Short holding reply',instruction:'Acknowledge and say we are looking into it.'}]};
+const pv=t=>({formal:'Formal: '+t,balanced:'Balanced: '+t,friendly:'Friendly: '+t});
+const suggestions={summary:'Jordan says your sending domain is missing SPF and DKIM records and asks to re-test.',audience:'contractor',priority:'High',need:'Fix + re-test',mood:'Neutral',
+  suggestions:[{title:'Agree and propose a new date',tag:'BEST FIT',preview:pv('agreed'),hint:'Ask which day suits them',instruction:'Agree the records are missing and propose re-testing; ask which day suits.'},
+    {title:'Ask them to fix it',tag:'FASTEST',preview:pv('please fix'),hint:'Request the records be added',instruction:'Ask them to add the records on their side.'},
+    {title:'Acknowledge for now',tag:'HOLDING',preview:pv('on it'),hint:'Short holding reply',instruction:'Acknowledge and say we are looking into it.'}]};
 const message=obj=>({id:'msg_1',type:'message',role:'assistant',model:'claude-opus-5-5',stop_reason:'end_turn',stop_sequence:null,
   content:[{type:'thinking',thinking:'',signature:'x'},{type:'text',text:JSON.stringify(obj)}],usage:{input_tokens:10,output_tokens:10}});
 
@@ -64,17 +65,20 @@ const message=obj=>({id:'msg_1',type:'message',role:'assistant',model:'claude-op
     await page.goto(`http://127.0.0.1:${port}/taskpane.html`);
     const shot=async n=>{if(process.env.SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.SCREENSHOT_DIR,n+'.png'),fullPage:true});};
 
-    // 1. Brand, email context, quick cards before a key exists
-    assert.match(await page.textContent('.brand'),/dbn\s*Email Studio/);
-    await page.waitForFunction(()=>/Replying to\s*Jordan Example/.test(document.getElementById('email-line').textContent));
+    // 1. Brand, email context, quick replies before a key exists
+    assert.equal(await page.getAttribute('.brand','aria-label'),'Bulwark HQ Assistant');
+    assert.ok(await page.$eval('.brand img',i=>i.complete&&i.naturalWidth>0),'logo loads');
+    await page.waitForFunction(()=>/Jordan Example/.test(document.getElementById('email-line').textContent));
     assert.equal(await page.textContent('#email-subject'),'Your whitelabel email is not functioning');
+    assert.equal(await page.textContent('#email-subject .hl'),'not functioning');
     assert.match(await page.textContent('#banner-text'),/Add your Claude API key/);
     assert.equal(await page.$$eval('#suggestions .card-btn',e=>e.length),4,'quick replies shown without a key');
-    await page.click('#suggestions .card-btn');
+    assert.equal(await page.isVisible('#insights'),false);
+    await page.click('#generate');
     await page.waitForSelector('#drawer:not([hidden])');
     assert.equal(requests.length,0,'no API call without a key');
 
-    // 2. Bad key rejected, good key saved, then suggestions load for this email
+    // 2. Bad key rejected, good key saved, then insights and replies load for this email
     mode='auth';await page.fill('#api-key','sk-ant-api03-'+'b'.repeat(40));await page.click('#save-key');
     await page.waitForFunction(()=>/rejected/.test(document.getElementById('settings-status').textContent));
     assert.equal(await page.evaluate(()=>window.__bag.apiKey),undefined);
@@ -87,22 +91,34 @@ const message=obj=>({id:'msg_1',type:'message',role:'assistant',model:'claude-op
     assert.equal(await page.textContent('#status'),'','old "add your key" message cleared');
     const sug=requests.find(r=>r.body&&r.body.output_config.format.schema.properties.suggestions);
     assert.equal(sug.body.output_config.effort,'low');assert.match(sug.body.messages[0].content[0].text,/SPF and DKIM/);
-    assert.deepEqual(await page.$$eval('#suggestions .card-btn strong',e=>e.map(x=>x.textContent)),suggestions.suggestions.map(s=>s.title));
+    assert.deepEqual(await page.$$eval('#suggestions .card-btn .txt',e=>e.map(x=>x.textContent)),suggestions.suggestions.map(s=>s.title));
+    assert.equal(await page.textContent('#in-priority'),'High');assert.equal(await page.getAttribute('#in-priority','class'),'high');
+    assert.equal(await page.textContent('#in-need'),'Fix + re-test');
+    assert.match(await page.textContent('#email-line'),/Jordan Example · contractor/);
     assert.equal(await page.inputValue('#profile'),'builtin-contractor','voice auto-picked from sender');
-    assert.match(await page.textContent('#voice-note'),/contractor/);
-    await shot('v31-1-open');
 
-    // 3. Tap a suggestion: one request with that instruction and the voice; draft view
-    const before=requests.length;
+    // 3. Pick a reply and tone: live preview changes, then one request carries both
+    assert.equal(await page.textContent('#preview-text'),'Balanced: agreed');
+    await page.click('#suggestions .card-btn >> nth=1');
+    assert.equal(await page.textContent('#preview-text'),'Balanced: please fix');
+    await page.click('#tone button >> nth=0');
+    assert.equal(await page.textContent('#tone-label'),'Very formal');
+    assert.equal(await page.textContent('#preview-text'),'Formal: please fix');
+    assert.equal(await page.textContent('#preview-greeting'),'Dear Jordan,');
+    await page.click('#tone button >> nth=4');assert.equal(await page.textContent('#preview-text'),'Friendly: please fix');
     await page.click('#suggestions .card-btn >> nth=0');
+    await shot('v32-1-open');
+    const before=requests.length;
+    await page.click('#generate');
     await page.waitForSelector('#view-draft:not([hidden])');
     const gen=requests.slice(before).find(r=>r.path==='/v1/messages');
     const ctx=JSON.parse(gen.body.messages[0].content[0].text);
     assert.match(ctx.user_dot_points,/propose re-testing/);assert.equal(ctx.task,'reply');
+    assert.equal(ctx.tone,'Friendly');assert.deepEqual(ctx.tone_controls,{formality:1,warmth:5,directness:5});
     assert.match(ctx.voice_profile.name,/Contractors/);assert.equal(gen.body.fallbacks,'default');
     assert.equal(await page.textContent('#draft-title'),'Reply to Jordan');
-    assert.match(await page.textContent('#review-text'),/placeholder/);assert.match(await page.getAttribute('#review-line','class'),/stop/);assert.equal(await page.textContent('#status'),'');
-    await shot('v31-2-draft');
+    assert.match(await page.textContent('#review-text'),/placeholder/);assert.match(await page.getAttribute('#review-line','class'),/stop/);
+    await shot('v32-2-draft');
 
     // 4. Red item guards insert; reply HTML has real list items
     await page.click('#apply');assert.match(await page.textContent('#apply'),/anyway/);
@@ -113,6 +129,7 @@ const message=obj=>({id:'msg_1',type:'message',role:'assistant',model:'claude-op
     assert.equal(await page.isVisible('#apply-all'),true);
     await page.click('#apply-all');await page.waitForFunction(()=>window.__calls.length===2);
     assert.equal((await page.evaluate(()=>window.__calls))[1][0],'replyAll');
+    assert.equal(await page.textContent('#saved-time'),'8m');assert.equal(await page.textContent('#saved-count'),'2 REPLIES');
 
     // 5. Refine with history; dictation into the change box
     await page.click('.refine button:has-text("Shorter")');
@@ -172,12 +189,12 @@ const message=obj=>({id:'msg_1',type:'message',role:'assistant',model:'claude-op
     await stuck.route('https://appsforoffice.microsoft.com/**',r=>r.fulfill({contentType:'text/javascript',
       body:"window.Office={HostType:{Outlook:'Outlook'},onReady(){return new Promise(()=>{});}};"}));
     await stuck.goto(`http://127.0.0.1:${port}/taskpane.html`);
-    await stuck.waitForFunction(()=>document.querySelectorAll('#suggestions .card-btn').length===4);
+    await stuck.waitForFunction(()=>document.querySelectorAll('#suggestions .card-btn').length===4&&document.querySelectorAll('#tone button').length===5);
     await stuck.click('#open-settings');assert.match(await stuck.textContent('#settings-status'),/Still connecting/);
     await stuck.click('#close-settings');
     await stuck.waitForFunction(()=>/could not finish starting/.test(document.getElementById('status').textContent),null,{timeout:20000});
     await stuck.close();
 
-    console.log('Hosted add-in v3.1 (browser): brand, quick cards, key flow, per-email suggestions + auto voice, one-tap reply, send-check guard, reply/reply all HTML, refine history, dictation (both boxes + Win+H fallback), back keeps draft, tools, Haiku, voices, watchdog passed.');
+    console.log('Bulwark HQ Assistant v3.2 (browser): brand + logo, quick replies, key flow, insights, reply + tone live preview, auto voice, time saved, send-check guard, reply/reply all HTML, refine history, dictation (both boxes + Win+H fallback), back keeps draft, tools, Haiku, voices, watchdog passed.');
   }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
